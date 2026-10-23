@@ -200,6 +200,8 @@ table.lb td{height:36px}
 table.lb td:first-child,table.lb th:first-child{text-align:center;padding-left:0;font-size:15px;font-weight:700}
 table.lb th:nth-child(2){text-align:left;padding-left:6px}
 table.lb .lb-name{text-align:left;padding-left:6px;font-family:var(--f-body);font-weight:600;font-size:15px}
+table.lb th:first-child{font-size:10px;font-weight:600;overflow:visible;text-overflow:clip}
+table.lb .lb-gross{font-size:16px;font-weight:600;color:var(--muted)}
 table.lb .lb-big{font-size:20px;font-weight:700}
 .rules{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--muted)}
 .rules b{color:var(--ink)}
@@ -363,9 +365,9 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
     <div class="hx-top"><div class="hx-head"><div><h2 id="lvTitle">En vivo</h2><div class="hx-meta" id="lvMeta"></div></div><button type="button" class="btn" id="lvClose">Tarjeta</button></div></div>
     <div class="hx-body">
       <div class="lv-groups" id="lvGroups"></div>
-      <div class="lv-tabs" role="tablist"><button type="button" class="lv-tab on" data-tab="tabla" role="tab" aria-selected="true">Tabla</button><button type="button" class="lv-tab" data-tab="tarjeta" role="tab" aria-selected="false">Tarjeta hoyo a hoyo</button></div>
-      <div class="stand" id="lvTabTabla"><h3>Tabla general · neto</h3><div class="scroll"><table class="lb lv-lb" id="lvTable"></table></div></div>
-      <div class="stand lv-cardwrap" id="lvTabTarjeta" hidden><h3>Tarjeta de todos · golpes por hoyo</h3><div class="scroll lv-scroll"><table class="lv-card" id="lvCard"></table></div><p class="src">Desliza hacia el lado para ver la vuelta. Círculo: birdie · cuadrado: bogey. Total con neto contra el par.</p></div>
+      <div class="lv-tabs" role="tablist"><button type="button" class="lv-tab on" data-tab="tarjeta" role="tab" aria-selected="true">Tarjeta hoyo a hoyo</button><button type="button" class="lv-tab" data-tab="tabla" role="tab" aria-selected="false">Tabla</button></div>
+      <div class="stand lv-cardwrap" id="lvTabTarjeta"><h3>Tarjeta de todos · golpes por hoyo</h3><div class="scroll lv-scroll"><table class="lv-card" id="lvCard"></table></div><p class="src">Desliza hacia el lado para ver la vuelta. Círculo: birdie · cuadrado: bogey. Total con neto contra el par.</p></div>
+      <div class="stand" id="lvTabTabla" hidden><h3>Tabla general · neto</h3><div class="scroll"><table class="lb lv-lb" id="lvTable"></table></div></div>
       <p class="src" id="lvStatus"></p>
     </div>
     <div class="hx-foot"><button type="button" class="btn primary" id="lvRefresh">Actualizar ahora</button></div>
@@ -522,7 +524,6 @@ function renderTable(tid,from,to,withTot){const c=cur();const sc=scores();const 
   if(st.mode==="ind"){
     h+=`<tr class="pairhead a"><td colspan="${span}">Jugadores</td></tr>`;
     act().forEach(p=>{h+=playerRow(p);});
-    h+=bestRow("Mejor neto",c.par.map((_,i)=>{const v=act().map(p=>netOf(p,i)).filter(x=>x!=null);return v.length?Math.min(...v):null;}),"best");
     h+=`<tr class="win"><td>Gana el hoyo</td>${idx.map(i=>{const w=indWinner(i);
       return `<td class="${w>=0&&w!=null?"wA":"wT"}">${w==null?"":w<0?"=":esc(initials(st.names[w]))}</td>`;}).join("")}<td></td>${withTot?"<td></td>":""}</tr>`;
   }else if(!isCol()){
@@ -587,16 +588,16 @@ function renderIndSummary(){const c=cur();const sc=scores();const N=st.names;
   const rows=act().map(p=>{let thru=0,gross=0,net=0,par=0,won=0;
     c.par.forEach((pp,i)=>{const s=sc[p][i];if(!s)return;thru++;gross+=s;net+=netOf(p,i);par+=pp;});
     c.par.forEach((_,i)=>{if(indWinner(i)===p)won++;});
-    return {p,thru,gross,tp:net-par,won};});
+    return {p,thru,gross,tp:net-par,gtp:gross-par,won};});
   rows.sort((a,b)=>(b.thru>0)-(a.thru>0)||a.tp-b.tp||b.won-a.won);
   let pos=0,prev=null;
   const body=rows.map((r,k)=>{if(r.tp!==prev){pos=k+1;prev=r.tp;}
-    return `<tr><td>${r.thru?pos:"–"}</td><td class="lb-name">${esc(N[r.p])}</td><td class="${r.thru?(r.tp<0?"c-under":r.tp>0?"c-over":""):""} lb-big">${r.thru?fmtTo(r.tp):"–"}</td><td>${r.thru||"–"}</td><td>${r.thru?r.gross:"–"}</td><td>${r.won}</td></tr>`;}).join("");
+    return `<tr><td>${r.thru?pos:"–"}</td><td class="lb-name">${esc(N[r.p])}</td><td class="lb-gross">${r.thru?fmtTo(r.gtp):"–"}</td><td class="${r.thru?(r.tp<0?"c-under":r.tp>0?"c-over":""):""} lb-big">${r.thru?fmtTo(r.tp):"–"}</td><td>${r.thru||"–"}</td><td>${r.thru?r.gross:"–"}</td><td>${r.won}</td></tr>`;}).join("");
   $("summary").className="colsum";
-  $("summary").innerHTML=`<div class="rules"><b>Individual, en neto:</b> cada uno juega por su cuenta. Gana el hoyo el mejor neto; si dos o más empatan, el hoyo no lo gana nadie. La tabla ordena por resultado neto contra el par.</div>
+  $("summary").innerHTML=`<div class="rules"><b>Individual, en neto:</b> cada uno juega por su cuenta. Gana el hoyo el mejor neto; si dos o más empatan, el hoyo no lo gana nadie. La tabla ordena por resultado neto contra el par. Gross es el resultado sin hándicap.</div>
   <div class="npl"><span>Jugadores</span><div class="npl-btns" role="radiogroup" aria-label="Cantidad de jugadores">${[1,2,3,4].map(k=>`<button type="button" class="npl-b${st.nInd===k?" on":""}" data-n="${k}" role="radio" aria-checked="${st.nInd===k}">${k}</button>`).join("")}</div></div>
-  <div class="stand"><h3>Tabla de posiciones</h3><div class="scroll"><table class="lb"><colgroup><col style="width:34px"><col><col style="width:52px"><col style="width:48px"><col style="width:54px"><col style="width:62px"></colgroup>
-  <tr><th>Pos</th><th>Jugador</th><th>Neto</th><th>Hoyos</th><th>Golpes</th><th>Ganados</th></tr>${body}</table></div></div>`;}
+  <div class="stand"><h3>Tabla de posiciones</h3><div class="scroll"><table class="lb"><colgroup><col style="width:30px"><col><col style="width:46px"><col style="width:48px"><col style="width:40px"><col style="width:42px"><col style="width:40px"></colgroup>
+  <tr><th>Pos</th><th>Jugador</th><th>Gross</th><th>Neto</th><th>Hoyo</th><th>Tot</th><th>Gan.</th></tr>${body}</table></div></div>`;}
 function renderPlayers(){const c=cur();const PH=playHcp();const tees=Object.keys(c.tees);const A=act();
   const tag=p=>st.mode==="2v2"?`<span class="ptag ${p<2?"wA":"wB"}">${p<2?"A":"B"}</span>`:`<span class="ptag">J${p+1}</span>`;
   let h=`<h2>Jugadores <span>Índice y salida</span></h2><div class="pl-grid"><div class="pl-h"></div><div class="pl-h">Nombre</div><div class="pl-h">Índice</div><div class="pl-h">Salida</div><div class="pl-h c">HDC</div>`;
@@ -922,7 +923,7 @@ document.addEventListener("click",e=>{const tb=e.target.closest(".lv-tab");if(!t
   $("lvTabTabla").hidden=k!=="tabla";$("lvTabTarjeta").hidden=k!=="tarjeta";});
 // Tabla general
 let liveTimer=null;
-function openLive(){const k=st.lvTab||"tabla";document.querySelectorAll(".lv-tab").forEach(x=>{const on=x.dataset.tab===k;x.classList.toggle("on",on);x.setAttribute("aria-selected",on);});$("lvTabTabla").hidden=k!=="tabla";$("lvTabTarjeta").hidden=k!=="tarjeta";$("live").hidden=false;document.body.classList.add("noscroll");flush();loadLive();liveTimer=setInterval(loadLive,15000);}
+function openLive(){if(!st.lvTabV2){st.lvTab="tarjeta";st.lvTabV2=true;}const k=st.lvTab||"tarjeta";document.querySelectorAll(".lv-tab").forEach(x=>{const on=x.dataset.tab===k;x.classList.toggle("on",on);x.setAttribute("aria-selected",on);});$("lvTabTabla").hidden=k!=="tabla";$("lvTabTarjeta").hidden=k!=="tarjeta";$("live").hidden=false;document.body.classList.add("noscroll");flush();loadLive();liveTimer=setInterval(loadLive,15000);}
 function closeLive(){$("live").hidden=true;document.body.classList.remove("noscroll");clearInterval(liveTimer);}
 function chFor(c,j){const i=j.i==null?0:Number(j.i);const rs=c.rs&&c.rs[j.tee];
   return rs?Math.round(i*rs[1]/113+rs[0]-sum(c.par)):Math.round(c.par.length===9?i/2:i);}
@@ -933,14 +934,14 @@ async function loadLive(){if(!st.live)return;$("lvStatus").textContent="Actualiz
     const c=COURSES.find(x=>x.label===r.jornada.cancha)||cur();const pct=r.jornada.porcentaje||100;const rows=[];
     r.grupos.forEach(g=>{const d=g.data||{};(d.jugadores||[]).forEach(j=>{const ph=Math.round(chFor(c,j)*pct/100);let thru=0,gross=0,net=0,par=0,last=0;
       c.par.forEach((pp,i)=>{const s=j.g&&j.g[i];if(!s)return;thru++;last=Math.max(last,i+1);gross+=s;net+=s-strokesFor(c,ph,i);par+=pp;});
-      rows.push({n:j.n,grupo:g.grupo,thru,last,gross,tp:net-par,ph,t:g.t,g:(j.g||[]).slice(0,c.par.length),net:c.par.map((pp,i)=>{const s=j.g&&j.g[i];return s?s-strokesFor(c,ph,i):null;})});});});
+      rows.push({n:j.n,grupo:g.grupo,thru,last,gross,tp:net-par,gtp:gross-par,ph,t:g.t,g:(j.g||[]).slice(0,c.par.length),net:c.par.map((pp,i)=>{const s=j.g&&j.g[i];return s?s-strokesFor(c,ph,i):null;})});});});
     rows.sort((a,b)=>(b.thru>0)-(a.thru>0)||a.tp-b.tp||b.thru-a.thru);
     let pos=0,prev=null;
     renderLiveCard(c,rows);
     $("lvTitle").textContent=r.jornada.nombre;
     $("lvMeta").textContent=`${r.jornada.cancha} · Código ${r.jornada.id} · ${pct}% del HDC`;
-    $("lvTable").innerHTML=`<tr><th>Pos</th><th>Jugador</th><th>Neto</th><th>Hoyo</th><th>Golpes</th></tr>`+rows.map((x,k)=>{if(x.tp!==prev){pos=k+1;prev=x.tp;}
-      return `<tr><td>${x.thru?pos:"–"}</td><td class="lb-name">${esc(x.n)}<small>${esc(x.grupo)} · juega ${fmtH(x.ph)}</small></td><td class="lb-big ${x.thru?(x.tp<0?"c-under":x.tp>0?"c-over":""):""}">${x.thru?fmtTo(x.tp):"–"}</td><td>${x.thru?(x.thru===c.par.length?"F":x.last):"–"}</td><td>${x.thru?x.gross:"–"}</td></tr>`;}).join("");
+    $("lvTable").innerHTML=`<colgroup><col style="width:30px"><col><col style="width:48px"><col style="width:50px"><col style="width:40px"><col style="width:44px"></colgroup><tr><th>Pos</th><th>Jugador</th><th>Gross</th><th>Neto</th><th>Hoyo</th><th>Tot</th></tr>`+rows.map((x,k)=>{if(x.tp!==prev){pos=k+1;prev=x.tp;}
+      return `<tr><td>${x.thru?pos:"–"}</td><td class="lb-name">${esc(x.n)}<small>${esc(x.grupo)} · juega ${fmtH(x.ph)}</small></td><td class="lb-gross">${x.thru?fmtTo(x.gtp):"–"}</td><td class="lb-big ${x.thru?(x.tp<0?"c-under":x.tp>0?"c-over":""):""}">${x.thru?fmtTo(x.tp):"–"}</td><td>${x.thru?(x.thru===c.par.length?"F":x.last):"–"}</td><td>${x.thru?x.gross:"–"}</td></tr>`;}).join("");
     const ago=t=>{const m=Math.round((Date.now()-t)/60000);return m<1?"recién":`hace ${m} min`;};
     $("lvGroups").innerHTML=r.grupos.map(g=>{const js=(g.data&&g.data.jugadores)||[];const h=Math.max(0,...js.map(j=>(j.g||[]).reduce((a,s,i)=>s?i+1:a,0)));
       return `<span class="chip">${esc(g.grupo)} · ${h?(h===c.par.length?"terminó":"hoyo "+h):"sin empezar"} · ${ago(g.t)}</span>`;}).join(" ");
