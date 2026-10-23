@@ -87,7 +87,10 @@ tr.win td{height:30px;font-size:13px;font-weight:700;letter-spacing:-.02em}
 .lv-on{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px 0}
 .lv-on .code{letter-spacing:.15em;color:var(--accent)}
 .lv-btns{display:flex;gap:10px;width:100%;align-items:center}
-#lvOpen{flex:1;padding:14px 16px;font-size:16px;color:var(--accent)!important;border:3px solid var(--accent)!important;box-shadow:0 0 0 3px var(--card),0 0 0 6px var(--accent);margin:4px 6px 4px 4px}
+#lvOpen{flex:1;position:relative;padding:14px 16px;font-size:16px;color:#fff!important;background:#d0102b!important;border:3px solid #d0102b!important;box-shadow:0 0 0 3px var(--card),0 0 0 6px #d0102b;margin:4px 6px 4px 4px}
+#lvOpen::after{content:"";position:absolute;top:-9px;right:-9px;width:12px;height:12px;border-radius:50%;background:#ff1f3d;box-shadow:0 0 0 3px var(--card)}
+@media (prefers-reduced-motion:no-preference){#lvOpen::after{animation:onair 1.4s ease-in-out infinite}}
+@keyframes onair{0%,100%{opacity:1}50%{opacity:.25}}
 #lvLeave{flex:none;padding:12px 14px}
 .lv-groups{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
 .lv-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;background:var(--row);padding:4px;border-radius:10px;border:1px solid var(--line)}
