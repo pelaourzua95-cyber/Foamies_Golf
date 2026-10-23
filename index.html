@@ -371,7 +371,7 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
       <div class="stand" id="lvTabTabla" hidden><h3>Tabla general · neto</h3><div class="scroll"><table class="lb lv-lb" id="lvTable"></table></div></div>
       <p class="src" id="lvStatus"></p>
     </div>
-    <div class="hx-foot"><button type="button" class="btn primary" id="lvRefresh">Actualizar ahora</button></div>
+    <div class="hx-foot"><div class="hx-nav"><button type="button" class="btn" id="lvRefresh">Actualizar</button><button type="button" class="btn primary" id="lvSave">Guardar jornada</button></div></div>
   </div>
   <div id="shot" class="shot" hidden>
     <div class="shot-box">
@@ -923,6 +923,60 @@ function renderLiveCard(c,rows){const n=c.par.length;const nines=n===18?[[0,9,"O
 document.addEventListener("click",e=>{const tb=e.target.closest(".lv-tab");if(!tb)return;const k=tb.dataset.tab;st.lvTab=k;save();
   document.querySelectorAll(".lv-tab").forEach(x=>{const on=x.dataset.tab===k;x.classList.toggle("on",on);x.setAttribute("aria-selected",on);});
   $("lvTabTabla").hidden=k!=="tabla";$("lvTabTarjeta").hidden=k!=="tarjeta";});
+// Imagen horizontal de la jornada completa
+let lastLive=null;
+async function buildLiveShot(){try{await document.fonts.ready;}catch(e){}
+  const {c,rows,j}=lastLive;const n=c.par.length;const P=40,POS=64,NAME=330,HW=n===18?68:96,SW=88,GW=96,NW=104;
+  const nines=n===18?[[0,9,"OUT"],[9,18,"IN"]]:[[0,n,"OUT"]];
+  const W=P*2+POS+NAME+HW*n+SW*(nines.length+1)+GW+NW;const RH=64,TOP=176;
+  const H=TOP+46+RH*2+(c.si?40:0)+rows.length*RH+80;
+  const cv=document.createElement("canvas");const k=1.5;cv.width=W*k;cv.height=H*k;const g=cv.getContext("2d");g.scale(k,k);
+  g.fillStyle=IMG.bg;g.fillRect(0,0,W,H);
+  g.fillStyle=IMG.band;g.fillRect(0,0,W,150);g.fillStyle=IMG.accent;g.fillRect(0,150,W,6);
+  g.textAlign="left";g.textBaseline="alphabetic";g.fillStyle="rgba(255,255,255,.75)";g.font=`700 24px ${FN}`;
+  const fecha=new Date().toLocaleDateString("es-CL",{day:"numeric",month:"long",year:"numeric"});
+  g.fillText(`JORNADA EN VIVO · INDIVIDUAL NETO · ${fecha}`.toUpperCase(),P,46);
+  g.fillStyle="#fff";g.font=`700 56px ${FN}`;g.fillText(String(j.nombre).toUpperCase(),P,106);
+  g.fillStyle="rgba(255,255,255,.8)";g.font=`500 24px ${FB}`;g.fillText(`${c.label} · Par ${sum(c.par)} · ${j.porcentaje||100}% del HDC · ${rows.length} jugadores`,P,138);
+  // columnas
+  const xs={pos:P,name:P+POS};let x=P+POS+NAME;const hx=[];const sx=[];
+  nines.forEach(([a,b])=>{for(let i=a;i<b;i++){hx[i]=x+HW/2;x+=HW;}sx.push(x+SW/2);x+=SW;});
+  const totX=x+SW/2;x+=SW;const grX=x+GW/2;x+=GW;const netX=x+NW/2;
+  let y=TOP;
+  g.fillStyle=IMG.band;g.fillRect(P,y,W-2*P,46);g.fillStyle="#fff";g.font=`700 22px ${FN}`;g.textBaseline="middle";
+  g.textAlign="center";g.fillText("POS",xs.pos+POS/2,y+23);g.textAlign="left";g.fillText("JUGADOR",xs.name+10,y+23);g.textAlign="center";
+  for(let i=0;i<n;i++)g.fillText(String(i+1),hx[i],y+23);nines.forEach((nn,k2)=>g.fillText(nn[2],sx[k2],y+23));
+  g.fillText("TOT",totX,y+23);g.fillText("GROSS",grX,y+23);g.fillText("NETO",netX,y+23);y+=46;
+  const line=h=>{g.strokeStyle=IMG.line;g.lineWidth=1;g.beginPath();g.moveTo(P,y+h);g.lineTo(W-P,y+h);g.stroke();};
+  g.fillStyle=IMG.row;g.fillRect(P,y,W-2*P,RH);g.fillStyle=IMG.ink;g.font=`700 24px ${FN}`;g.textAlign="left";g.fillText("PAR",xs.name+10,y+RH/2);g.textAlign="center";
+  for(let i=0;i<n;i++)g.fillText(String(c.par[i]),hx[i],y+RH/2);nines.forEach(([a,b],k2)=>g.fillText(String(sum(c.par.slice(a,b))),sx[k2],y+RH/2));g.fillText(String(sum(c.par)),totX,y+RH/2);line(RH);y+=RH;
+  if(c.si){g.fillStyle=IMG.muted;g.font=`500 19px ${FN}`;g.textAlign="left";g.fillText("HCP",xs.name+10,y+20);g.textAlign="center";for(let i=0;i<n;i++)g.fillText(String(c.si[i]),hx[i],y+20);line(40);y+=40;}
+  let pos=0,prev=null;
+  rows.forEach((r,idx)=>{if(r.tp!==prev){pos=idx+1;prev=r.tp;}
+    if(idx%2){g.fillStyle="rgba(11,37,69,.035)";g.fillRect(P,y,W-2*P,RH);}
+    g.textAlign="center";g.fillStyle=IMG.ink;g.font=`700 28px ${FN}`;g.fillText(r.thru?String(pos):"–",xs.pos+POS/2,y+RH/2);
+    g.textAlign="left";g.font=`700 25px ${FN}`;let nm=String(r.n).toUpperCase();while(g.measureText(nm).width>NAME-20&&nm.length>3)nm=nm.slice(0,-2)+"…";g.fillText(nm,xs.name+10,y+RH/2-9);
+    g.font=`500 17px ${FB}`;g.fillStyle=IMG.muted;g.fillText(`${r.grupo} · juega ${fmtH(r.ph)}`,xs.name+10,y+RH/2+15);
+    for(let i=0;i<n;i++){drawMark(g,hx[i],y+RH/2,r.g[i],c.par[i]);const kk=strokesFor(c,r.ph,i);
+      if(kk>0&&r.g[i]){g.fillStyle=IMG.accent;for(let d=0;d<Math.min(kk,3);d++){g.beginPath();g.arc(hx[i]+24-d*8,y+9,3,0,7);g.fill();}}}
+    g.textAlign="center";g.fillStyle=IMG.ink;g.font=`700 26px ${FN}`;
+    nines.forEach(([a,b],k2)=>{const pl=r.g.slice(a,b).filter(Boolean);if(pl.length)g.fillText(String(sum(pl)),sx[k2],y+RH/2);});
+    if(r.thru){g.fillText(String(r.gross),totX,y+RH/2);
+      g.fillStyle=r.gtp<0?IMG.red:r.gtp>0?IMG.blue:IMG.ink;g.font=`600 26px ${FN}`;g.fillText(fmtTo(r.gtp),grX,y+RH/2);
+      g.fillStyle=r.tp<0?IMG.red:r.tp>0?IMG.blue:IMG.ink;g.font=`700 32px ${FN}`;g.fillText(fmtTo(r.tp),netX,y+RH/2);}
+    line(RH);y+=RH;});
+  g.textAlign="left";g.textBaseline="alphabetic";g.font=`500 18px ${FB}`;g.fillStyle=IMG.muted;
+  g.fillText(`Ordenado por neto. Círculo: birdie · cuadrado: bogey · puntos dorados: golpes de hándicap. Código de jornada ${j.id}.`,P,y+40);
+  return new Promise(r=>cv.toBlob(b=>r(b),"image/png"));}
+async function shareImage(blob,fname,title){const file=new File([blob],fname,{type:"image/png"});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title});return;}catch(e){if(e&&e.name==="AbortError")return;}}
+  const url=URL.createObjectURL(blob);$("shotImg").src=url;$("shotDl").href=url;$("shotDl").download=fname;$("shotMsg").textContent="Mantén presionada la imagen para guardarla o compartirla.";$("shot").hidden=false;}
+document.addEventListener("click",async e=>{const b=e.target.closest("#lvSave");if(!b)return;
+  if(!lastLive){$("lvStatus").textContent="Espera a que cargue la jornada.";return;}
+  b.disabled=true;b.textContent="Generando…";
+  try{const blob=await buildLiveShot();await shareImage(blob,`jornada-${lastLive.j.id}-${new Date().toISOString().slice(0,10)}.png`,lastLive.j.nombre);}
+  catch(err){$("shotMsg").textContent="No se pudo generar la imagen. Intenta de nuevo.";$("shot").hidden=false;}
+  finally{b.disabled=false;b.textContent="Guardar jornada";}});
 // Tabla general
 let liveTimer=null;
 function openLive(){if(!st.lvTabV2){st.lvTab="tarjeta";st.lvTabV2=true;}const k=st.lvTab||"tarjeta";document.querySelectorAll(".lv-tab").forEach(x=>{const on=x.dataset.tab===k;x.classList.toggle("on",on);x.setAttribute("aria-selected",on);});$("lvTabTabla").hidden=k!=="tabla";$("lvTabTarjeta").hidden=k!=="tarjeta";$("live").hidden=false;document.body.classList.add("noscroll");flush();loadLive();liveTimer=setInterval(loadLive,15000);}
@@ -939,7 +993,7 @@ async function loadLive(){if(!st.live)return;$("lvStatus").textContent="Actualiz
       rows.push({n:j.n,grupo:g.grupo,thru,last,gross,tp:net-par,gtp:gross-par,ph,t:g.t,g:(j.g||[]).slice(0,c.par.length),net:c.par.map((pp,i)=>{const s=j.g&&j.g[i];return s?s-strokesFor(c,ph,i):null;})});});});
     rows.sort((a,b)=>(b.thru>0)-(a.thru>0)||a.tp-b.tp||b.thru-a.thru);
     let pos=0,prev=null;
-    renderLiveCard(c,rows);
+    lastLive={c,rows,j:r.jornada};renderLiveCard(c,rows);
     $("lvTitle").textContent=r.jornada.nombre;
     $("lvMeta").textContent=`${r.jornada.cancha} · Código ${r.jornada.id} · ${pct}% del HDC`;
     $("lvTable").innerHTML=`<colgroup><col style="width:30px"><col><col style="width:48px"><col style="width:50px"><col style="width:40px"><col style="width:44px"></colgroup><tr><th>Pos</th><th>Jugador</th><th>Gross</th><th>Neto</th><th>Hoyo</th><th>Tot</th></tr>`+rows.map((x,k)=>{if(x.tp!==prev){pos=k+1;prev=x.tp;}
