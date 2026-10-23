@@ -74,6 +74,12 @@ tr.win td{height:30px;font-size:13px;font-weight:700;letter-spacing:-.02em}
 .vs b{font-family:var(--f-num);font-size:22px;font-variant-numeric:tabular-nums;text-align:right}
 .vs .lead{font-weight:600}
 .colsum{display:flex;flex-direction:column;gap:12px}
+.npl{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.npl>span{font-family:var(--f-num);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:13px}
+.npl-btns{display:flex;gap:8px}
+.npl-b{width:44px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--row);color:var(--ink);font:700 18px var(--f-num);cursor:pointer}
+.npl-b.on{background:var(--band);border-color:var(--band);color:#fff}
+.npl-b:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .save{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding-top:4px;border-top:1px solid var(--line)}
 .btn.primary{background:var(--band);color:#fff;border-color:var(--band);padding:13px 20px;font-size:15px;text-decoration:none;text-align:center}
 .btn.primary:disabled{opacity:.6}
@@ -91,11 +97,11 @@ tr.win td{height:30px;font-size:13px;font-weight:700;letter-spacing:-.02em}
 #roster .rs-x{border:0;background:transparent;color:var(--muted);font-size:18px;line-height:1;padding:2px 6px;cursor:pointer;border-radius:4px}
 #roster .rs-x:hover{color:var(--birdie)}
 table.lb{min-width:0}
-table.lb th{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;height:28px}
+table.lb th{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600;height:28px}
 table.lb td{height:36px}
 table.lb td:first-child,table.lb th:first-child{text-align:center;padding-left:0;font-size:15px;font-weight:700}
-table.lb th:nth-child(2){text-align:left}
-table.lb .lb-name{text-align:left;font-family:var(--f-body);font-weight:600;font-size:15px}
+table.lb th:nth-child(2){text-align:left;padding-left:6px}
+table.lb .lb-name{text-align:left;padding-left:6px;font-family:var(--f-body);font-weight:600;font-size:15px}
 table.lb .lb-big{font-size:20px;font-weight:700}
 .rules{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--muted)}
 .rules b{color:var(--ink)}
@@ -255,7 +261,7 @@ let st=load();
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.scores)return s;}catch(e){}
   // Ejemplo inicial: Los Leones con los primeros hoyos cargados
   return {course:0,names:["Jugador 1","Jugador 2","Jugador 3","Jugador 4"],hcp:[8,18,12,22],allow:85,offLow:true,scores:{"0":[[4,5,3,6,4,3],[5,4,2,5,5,4],[4,4,4,5,3,3],[3,6,3,4,4,5]]},example:true};}
-st.hcp=st.hcp||[null,null,null,null];if(st.allow==null)st.allow=85;if(st.offLow==null)st.offLow=true;if(!st.mode)st.mode="2v2";if(!st.roster)st.roster=[];
+st.hcp=st.hcp||[null,null,null,null];if(st.allow==null)st.allow=85;if(st.offLow==null)st.offLow=true;if(!st.mode)st.mode="2v2";if(!st.roster)st.roster=[];if(!st.nInd)st.nInd=4;
 function save(){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}
 const $=id=>document.getElementById(id);
 function cur(){return COURSES[st.course]||COURSES[0];}
@@ -282,9 +288,10 @@ function row(cells){return "<tr>"+cells.join("")+"</tr>";}
 function teeSw(t){const col=TEE_COLOR[t]||"var(--tee-otra)";return `<span class="sw" style="background:${col}"></span>`;}
 
 // ---- Hándicap neto ----
+function act(){return st.mode==="ind"?[0,1,2,3].slice(0,st.nInd):[0,1,2,3];}
 function playHcp(){const c=cur();const n=c.par.length;
   const base=st.hcp.map(h=>{if(h==null||h==="")return 0;let v=Math.round(Number(h)*st.allow/100);if(n===9)v=Math.round(v/2);return v;});
-  if(!st.offLow)return base;const m=Math.min(...base);return base.map(v=>v-m);}
+  if(!st.offLow)return base;const m=Math.min(...act().map(p=>base[p]));return base.map(v=>v-m);}
 function strokesOn(ph,i){const c=cur();if(!c.si)return 0;const n=c.par.length;const si=c.si[i];
   if(ph>=0)return Math.floor(ph/n)+(si<=ph%n?1:0);
   const a=-ph;return -(Math.floor(a/n)+(si>n-(a%n)?1:0));}
@@ -319,8 +326,8 @@ function colRun(){const c=cur();const n=c.par.length;const out=[];let carry=0,ru
     out.push({r,mult,d,run});}
   return out;}
 // Individual: gana el hoyo el mejor neto único (con los 4 anotados); empate, nadie.
-function indWinner(i){if(![0,1,2,3].every(p=>scores()[p][i]))return null;
-  const n=[0,1,2,3].map(p=>netOf(p,i));const m=Math.min(...n);const w=n.map((v,p)=>v===m?p:-1).filter(p=>p>=0);
+function indWinner(i){const A=act();if(A.length<2||!A.every(p=>scores()[p][i]))return null;
+  const n=A.map(p=>netOf(p,i));const m=Math.min(...n);const w=A.filter((p,k)=>n[k]===m);
   return w.length===1?w[0]:-1;}
 // ---- Jugadores guardados (se recuerdan en este teléfono) ----
 function isDefaultName(n){return !n||/^jugador\s*\d+$/i.test(n.trim());}
@@ -377,8 +384,8 @@ function renderTable(tid,from,to,withTot){const c=cur();const sc=scores();const 
   const bestRow=(lab,arr,cl)=>`<tr class="${cl}"><td>${lab}</td>${idx.map(i=>{const s=arr[i];const [sh,co]=cls(s,c.par[i]);return `<td class="${segC(i)}"><span class="mark ${sh} ${co}" style="margin:0 auto">${s==null?"":s}</span></td>`;}).join("")}${totCells(arr,arr,c,idx,withTot)}</tr>`;
   if(st.mode==="ind"){
     h+=`<tr class="pairhead a"><td colspan="${span}">Jugadores</td></tr>`;
-    [0,1,2,3].forEach(p=>{h+=playerRow(p);});
-    h+=bestRow("Mejor neto",c.par.map((_,i)=>{const v=[0,1,2,3].map(p=>netOf(p,i)).filter(x=>x!=null);return v.length?Math.min(...v):null;}),"best");
+    act().forEach(p=>{h+=playerRow(p);});
+    h+=bestRow("Mejor neto",c.par.map((_,i)=>{const v=act().map(p=>netOf(p,i)).filter(x=>x!=null);return v.length?Math.min(...v):null;}),"best");
     h+=`<tr class="win"><td>Gana el hoyo</td>${idx.map(i=>{const w=indWinner(i);
       return `<td class="${w>=0&&w!=null?"wA":"wT"}">${w==null?"":w<0?"=":esc(initials(st.names[w]))}</td>`;}).join("")}<td></td>${withTot?"<td></td>":""}</tr>`;
   }else if(!isCol()){
@@ -440,7 +447,7 @@ function renderColSummary(){const c=cur();const L=segLen();const N=st.names;cons
   html+=`<div class="stand"><h3>Balance por jugador</h3><ol>${order.map(p=>`<li><span>${esc(N[p])}</span><b class="${bal[p]>0?"c-under":bal[p]<0?"c-over":""}">${bal[p]>0?"+"+bal[p]:bal[p]<0?"−"+(-bal[p]):"0"}</b></li>`).join("")}</ol></div>`;
   $("summary").className="colsum";$("summary").innerHTML=html;}
 function renderIndSummary(){const c=cur();const sc=scores();const N=st.names;
-  const rows=[0,1,2,3].map(p=>{let thru=0,gross=0,net=0,par=0,won=0;
+  const rows=act().map(p=>{let thru=0,gross=0,net=0,par=0,won=0;
     c.par.forEach((pp,i)=>{const s=sc[p][i];if(!s)return;thru++;gross+=s;net+=netOf(p,i);par+=pp;});
     c.par.forEach((_,i)=>{if(indWinner(i)===p)won++;});
     return {p,thru,gross,tp:net-par,won};});
@@ -450,7 +457,8 @@ function renderIndSummary(){const c=cur();const sc=scores();const N=st.names;
     return `<tr><td>${r.thru?pos:"–"}</td><td class="lb-name">${esc(N[r.p])}</td><td class="${r.thru?(r.tp<0?"c-under":r.tp>0?"c-over":""):""} lb-big">${r.thru?fmtTo(r.tp):"–"}</td><td>${r.thru||"–"}</td><td>${r.thru?r.gross:"–"}</td><td>${r.won}</td></tr>`;}).join("");
   $("summary").className="colsum";
   $("summary").innerHTML=`<div class="rules"><b>Individual, en neto:</b> cada uno juega por su cuenta. Gana el hoyo el mejor neto; si dos o más empatan, el hoyo no lo gana nadie. La tabla ordena por resultado neto contra el par.</div>
-  <div class="stand"><h3>Tabla de posiciones</h3><div class="scroll"><table class="lb"><colgroup><col style="width:38px"><col><col style="width:62px"><col style="width:56px"><col style="width:56px"><col style="width:64px"></colgroup>
+  <div class="npl"><span>Jugadores</span><div class="npl-btns" role="radiogroup" aria-label="Cantidad de jugadores">${[1,2,3,4].map(k=>`<button type="button" class="npl-b${st.nInd===k?" on":""}" data-n="${k}" role="radio" aria-checked="${st.nInd===k}">${k}</button>`).join("")}</div></div>
+  <div class="stand"><h3>Tabla de posiciones</h3><div class="scroll"><table class="lb"><colgroup><col style="width:34px"><col><col style="width:52px"><col style="width:48px"><col style="width:54px"><col style="width:62px"></colgroup>
   <tr><th>Pos</th><th>Jugador</th><th>Neto</th><th>Hoyos</th><th>Golpes</th><th>Ganados</th></tr>${body}</table></div></div>`;}
 function render(){const c=cur();const n=c.par.length;
   renderHeader();
@@ -462,7 +470,7 @@ function render(){const c=cur();const n=c.par.length;
   $("allow").value=String(st.allow);$("offlow").checked=!!st.offLow;
   const PH=playHcp();
   $("hinfo").innerHTML=(c.si?"":"<b>Esta vuelta no tiene hándicap por hoyo publicado, así que el neto es igual al gross.</b> ")+
-    "Golpes que recibe cada uno: "+st.names.map((n,i)=>`<span class="chip">${esc(n)} <b>${PH[i]>=0?PH[i]:"+"+(-PH[i])}</b></span>`).join(" ")+
+    "Golpes que recibe cada uno: "+act().map(i=>[st.names[i],i]).map(([n,i])=>`<span class="chip">${esc(n)} <b>${PH[i]>=0?PH[i]:"+"+(-PH[i])}</b></span>`).join(" ")+
     (c.par.length===9?" <span class='src'>(vuelta de 9 hoyos: se usa la mitad del hándicap)</span>":"");
 }
 function esc(s){return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
@@ -507,6 +515,7 @@ q.addEventListener("blur",()=>setTimeout(()=>{closeList();q.value=cur().label;},
 function pick(id){st.course=id;save();closeList();q.blur();render();}
 
 // reset with inline confirm
+document.addEventListener("click",e=>{const b=e.target.closest(".npl-b");if(!b)return;st.nInd=+b.dataset.n;save();render();});
 $("resetBox").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
   if(b.id==="reset"){$("resetBox").innerHTML=`<div class="confirm">¿Borrar los puntajes de esta cancha? <button class="btn danger" id="yes" type="button">Borrar</button><button class="btn" id="no" type="button">Cancelar</button></div>`;}
   else{if(b.id==="yes"){st.scores[String(cur().id)]=[[],[],[],[]];st.example=false;save();render();}
@@ -526,7 +535,7 @@ function shotSummary(){const c=cur();const N=st.names;const L=[];
       const a=`${N[pr[0][0]]} y ${N[pr[0][1]]}`,b=`${N[pr[1][0]]} y ${N[pr[1][1]]}`;
       L.push({t:`Hoyos ${s*Lg+1}–${(s+1)*Lg}: ${a} vs ${b}`,v:!pl?"–":d===0?"=":"+"+Math.abs(d),c:d>0?IMG.band:d<0?IMG.gold:IMG.muted,sub:!pl?"":d===0?"Van iguales":`Gana ${d>0?a:b}`});});
     [0,1,2,3].sort((a,b)=>bal[b]-bal[a]).forEach(p=>L.push({t:N[p],v:bal[p]>0?"+"+bal[p]:bal[p]<0?"−"+(-bal[p]):"0",c:bal[p]>0?IMG.red:bal[p]<0?IMG.blue:IMG.ink,sub:"Balance"}));}
-  else{const rows=[0,1,2,3].map(p=>{let th=0,net=0,par=0,won=0;c.par.forEach((pp,i)=>{const s=scores()[p][i];if(!s)return;th++;net+=netOf(p,i);par+=pp;});
+  else{const rows=act().map(p=>{let th=0,net=0,par=0,won=0;c.par.forEach((pp,i)=>{const s=scores()[p][i];if(!s)return;th++;net+=netOf(p,i);par+=pp;});
       c.par.forEach((_,i)=>{if(indWinner(i)===p)won++;});return {p,th,tp:net-par,won};}).sort((a,b)=>(b.th>0)-(a.th>0)||a.tp-b.tp||b.won-a.won);
     rows.forEach((r,k)=>L.push({t:`${k+1}. ${N[r.p]}`,v:r.th?fmtTo(r.tp):"–",c:r.tp<0?IMG.red:r.tp>0?IMG.blue:IMG.ink,sub:`${r.th} hoyos · ${r.won} ganados`}));}
   return L;}
@@ -540,7 +549,7 @@ function drawMark(g,x,y,val,par){if(val==null||val==="")return;const d=val-par;c
 async function buildShot(){try{await document.fonts.ready;}catch(e){}
   const c=cur();const n=c.par.length;const sc=scores();const PH=playHcp();
   const W=1080,P=40,LAB=230,TOT=84,COLW=(W-2*P-LAB-2*TOT)/9,RH=62,HH=46;
-  const extra=st.mode==="2v2"?2:1;const rowsPerNine=2+Object.keys(c.tees).length+4+extra;
+  const extra=st.mode==="2v2"?2:1;const rowsPerNine=2+Object.keys(c.tees).length+act().length+extra;
   const nines=n===18?2:1;const sum=shotSummary();
   const H=210+nines*(rowsPerNine*RH+HH+40)+60+sum.length*64+110;
   const cv=document.createElement("canvas");const sc2=2;cv.width=W*sc2;cv.height=H*sc2;const g=cv.getContext("2d");g.scale(sc2,sc2);
@@ -574,7 +583,7 @@ async function buildShot(){try{await document.fonts.ready;}catch(e){}
     idx.forEach((i,j)=>g.fillText(String(c.par[i]),cx(j),y+RH/2));g.fillText(String(sum0(idx.map(i=>c.par[i]))),tx(0),y+RH/2);if(k===1||nines===1)g.fillText(String(sum0(c.par)),tx(1),y+RH/2);line();y+=RH;
     const totals=(arr,net,ids,j)=>{const pl=ids.filter(i=>arr[i]!=null);if(!pl.length)return;const S=sum0(pl.map(i=>arr[i]));const T=sum0(pl.map(i=>net[i]))-sum0(pl.map(i=>c.par[i]));
       g.fillStyle=IMG.ink;g.font=`700 26px ${FN}`;g.fillText(String(S),tx(j),y+RH/2-9);g.font=`700 17px ${FN}`;g.fillStyle=T<0?IMG.red:T>0?IMG.blue:IMG.muted;g.fillText(fmtTo(T),tx(j),y+RH/2+16);};
-    const order=st.mode==="2v2"?[0,1,"A",2,3,"B"]:[0,1,2,3];
+    const order=st.mode==="2v2"?[0,1,"A",2,3,"B"]:act();
     order.forEach(p=>{
       if(p==="A"||p==="B"){const ps=p==="A"?[0,1]:[2,3];const arr=c.par.map((_,i)=>bestNet(ps,i));
         g.fillStyle=IMG.row;g.fillRect(P,y,W-2*P,RH);label(`MEJOR NETO ${p}`,p==="A"?IMG.band:IMG.gold);
