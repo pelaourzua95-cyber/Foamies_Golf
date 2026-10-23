@@ -229,6 +229,18 @@ table.lb .lb-big{font-size:20px;font-weight:700}
 .scroll{overflow-x:auto}
 table{border-collapse:collapse;width:100%;min-width:360px;font-family:var(--f-num);font-variant-numeric:tabular-nums;table-layout:fixed}
 col.lab{width:108px} col.tot{width:40px}
+.sc-scroll{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+table.sc-wide{width:100%}
+table.sc-wide col.lab{width:126px} table.sc-wide col.hl{width:36px} table.sc-wide col.tot{width:44px}
+table.sc-wide th:first-child,table.sc-wide td:first-child{position:sticky;left:0;z-index:2;background:var(--card);box-shadow:1px 0 0 var(--line)}
+table.sc-wide tr.hole th:first-child{background:var(--band)}
+table.sc-wide tr.par td:first-child,table.sc-wide tr.best td:first-child{background:var(--row)}
+.ph-l{position:sticky;left:10px;display:inline-block}
+table.sc-wide tr.pairhead td{overflow:visible;padding-left:0}
+table.sc-wide td.segstart,table.sc-wide th.segstart{border-left:0;box-shadow:inset 2px 0 0 var(--accent)}
+table.sc-wide tr.pairhead td:first-child{position:static;box-shadow:none;background:transparent}
+table.sc-wide th.sum{background:var(--band);font-weight:700}
+table.sc-wide .n2{box-shadow:inset 1px 0 0 rgba(255,255,255,.25)}
 .hhead{display:flex;justify-content:space-between;align-items:center;padding-right:4px}
 .hdc{width:30px;text-align:center;font-size:11px;letter-spacing:.08em;color:var(--accent)}
 .pwrap{display:flex;align-items:center;gap:4px;padding-right:4px}
@@ -332,8 +344,7 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
     <div class="hset-info" id="hinfo"></div>
   </section>
   <section class="summary" id="summary"></section>
-  <section class="card"><h2>Ida <span id="h-out"></span></h2><div class="scroll"><table id="t1"></table></div></section>
-  <section class="card" id="card2"><h2>Vuelta <span id="h-in"></span></h2><div class="scroll"><table id="t2"></table></div></section>
+  <section class="card"><h2>Tarjeta <span id="h-out"></span></h2><div class="scroll sc-scroll"><table id="t1"></table></div></section>
   <div class="foot">
     <div class="legend">
       <div><span class="mark s-eagle c-under">3</span>Eagle o mejor</div>
@@ -500,62 +511,54 @@ function short(n){n=String(n||"").trim();if(isDefaultName(n))return n;return n.s
 function initials(n){const w=String(n||"").trim().split(/\s+/).filter(Boolean);if(!w.length)return "?";
   if(w.length>1)return (w[0][0]+w[1][0]).toUpperCase();return w[0].slice(0,2).toUpperCase();}
 
-function renderTable(tid,from,to,withTot){const c=cur();const sc=scores();const n=c.par.length;const PH=playHcp();
-  const idx=[];for(let i=from;i<to;i++)idx.push(i);
-  const sumLbl=from===0?"Out":"In";
-  let h=`<colgroup><col class="lab">${idx.map(()=>"<col>").join("")}<col class="tot">${withTot?'<col class="tot">':""}</colgroup>`;
-  h+=`<tr class="hole"><th><div class="hhead"><span>Hoyo</span><span class="hdc" title="Hándicap de cada jugador">HDC</span></div></th>${idx.map(i=>`<th>${i+1}</th>`).join("")}<th>${sumLbl}</th>${withTot?"<th>Tot</th>":""}</tr>`;
-  for(const [t,v] of Object.entries(c.tees)){
-    const part=idx.map(i=>v[i]);const s=part.some(x=>x==null)?"—":sum(part);
-    const all=v.some(x=>x==null)?"—":sum(v);
-    h+=`<tr class="tee"><td>${teeSw(t)}${t}</td>${part.map(x=>`<td>${x==null?"—":x}</td>`).join("")}<td>${s}</td>${withTot?`<td>${all}</td>`:""}</tr>`;
-  }
-  h+=`<tr class="hcp"><td>Hcp</td>${idx.map(i=>`<td>${c.si?c.si[i]:"—"}</td>`).join("")}<td></td>${withTot?"<td></td>":""}</tr>`;
-  const pp=idx.map(i=>c.par[i]);
-  h+=`<tr class="par"><td>Par</td>${pp.map(x=>`<td>${x}</td>`).join("")}<td class="sum">${sum(pp)}</td>${withTot?`<td class="sum">${sum(c.par)}</td>`:""}</tr>`;
-  const span=idx.length+(withTot?3:2);
-  const segC=i=>(isCol()?(segOf(i)%2?" seg1":"")+(segStart(i)&&i!==from?" segstart":""):"");
-  const playerRow=p=>{
-    const ch=courseHcp(p);
-    let r=`<tr class="ply"><td><div class="pwrap"><span class="pn">${esc(st.names[p])}</span><span class="phdc" title="Hándicap de cancha ${fmtH(ch)} · recibe ${PH[p]} golpes">${st.hcp[p]==null?"–":fmtH(ch)}</span></div></td>`;
-    idx.forEach(i=>{const s=sc[p][i];const [sh,co]=cls(s,c.par[i]);
-      r+=`<td class="${segC(i)}"><div class="cell mark ${sh} ${co}">${dots(strokesOn(PH[p],i))}<input id="s${p}-${i}" inputmode="numeric" maxlength="2" data-p="${p}" data-i="${i}" value="${s||""}" aria-label="${esc(st.names[p])} hoyo ${i+1}"></div></td>`;});
-    return r+totCells(sc[p],c.par.map((_,i)=>netOf(p,i)),c,idx,withTot)+"</tr>";};
-  const bestRow=(lab,arr,cl)=>`<tr class="${cl}"><td>${lab}</td>${idx.map(i=>{const s=arr[i];const [sh,co]=cls(s,c.par[i]);return `<td class="${segC(i)}"><span class="mark ${sh} ${co}" style="margin:0 auto">${s==null?"":s}</span></td>`;}).join("")}${totCells(arr,arr,c,idx,withTot)}</tr>`;
+function renderTable(tid){const c=cur();const sc=scores();const n=c.par.length;const PH=playHcp();
+  const R9=n===18?[[0,9,"Out"],[9,18,"In"]]:[[0,n,"Tot"]];const withTot=n===18;
+  const ids=(a,b)=>{const o=[];for(let i=a;i<b;i++)o.push(i);return o;};const ALL=ids(0,n);
+  // celdas: por hoyo fh(i), por tramo fs(ids,lab), total ft()
+  const row=(fh,fs,ft)=>R9.map(([a,b,l])=>ids(a,b).map(fh).join("")+fs(ids(a,b),l)).join("")+(withTot?ft():"");
+  const empty=()=>"<td class=\"sum\"></td>";
+  let h=`<colgroup><col class="lab">${R9.map(([a,b])=>ids(a,b).map(()=>"<col class=\"hl\">").join("")+'<col class="tot">').join("")}${withTot?'<col class="tot">':""}</colgroup>`;
+  h+=`<tr class="hole"><th><div class="hhead"><span>Hoyo</span><span class="hdc" title="Hándicap de cada jugador">HDC</span></div></th>${row(i=>`<th class="${i===9?"n2":""}">${i+1}</th>`,(x,l)=>`<th class="sum">${l}</th>`,()=>`<th class="sum">Tot</th>`)}</tr>`;
+  for(const [tn,v] of Object.entries(c.tees)){
+    const sm=x=>x.some(i=>v[i]==null)?"—":sum(x.map(i=>v[i]));
+    h+=`<tr class="tee"><td>${teeSw(tn)}${tn}</td>${row(i=>`<td>${v[i]==null?"—":v[i]}</td>`,x=>`<td class="sum">${sm(x)}</td>`,()=>`<td class="sum">${sm(ALL)}</td>`)}</tr>`;}
+  h+=`<tr class="hcp"><td>Hcp</td>${row(i=>`<td>${c.si?c.si[i]:"—"}</td>`,empty,empty)}</tr>`;
+  h+=`<tr class="par"><td>Par</td>${row(i=>`<td>${c.par[i]}</td>`,x=>`<td class="sum">${sum(x.map(i=>c.par[i]))}</td>`,()=>`<td class="sum">${sum(c.par)}</td>`)}</tr>`;
+  const span=1+n+R9.length+(withTot?1:0);
+  const segC=i=>(isCol()?(segOf(i)%2?" seg1":"")+(segStart(i)&&i!==0?" segstart":""):"");
+  const totF=(arr,net)=>{const one=x=>{const pl=x.filter(i=>arr[i]!=null&&arr[i]!=="");if(!pl.length)return "";
+      const S=sum(pl.map(i=>arr[i]));const T=sum(pl.map(i=>net[i]))-sum(pl.map(i=>c.par[i]));
+      return S+`<span class="topar ${T<0?"c-under":T>0?"c-over":""}">${fmtTo(T)}</span>`;};
+    return [x=>`<td class="sum">${one(x)}</td>`,()=>`<td class="sum">${one(ALL)}</td>`];};
+  const playerRow=p=>{const ch=courseHcp(p);const [fs,ft]=totF(sc[p],c.par.map((_,i)=>netOf(p,i)));
+    return `<tr class="ply"><td><div class="pwrap"><span class="pn">${esc(st.names[p])}</span><span class="phdc" title="Hándicap de cancha ${fmtH(ch)} · recibe ${PH[p]} golpes">${st.hcp[p]==null?"–":fmtH(ch)}</span></div></td>`+
+      row(i=>{const s=sc[p][i];const [sh,co]=cls(s,c.par[i]);
+        return `<td class="${segC(i)}"><div class="cell mark ${sh} ${co}">${dots(strokesOn(PH[p],i))}<input id="s${p}-${i}" inputmode="numeric" maxlength="2" data-p="${p}" data-i="${i}" value="${s||""}" aria-label="${esc(st.names[p])} hoyo ${i+1}"></div></td>`;},fs,ft)+"</tr>";};
+  const bestRow=(lab,arr,cl)=>{const [fs,ft]=totF(arr,arr);return `<tr class="${cl}"><td>${lab}</td>${row(i=>{const s=arr[i];const [sh,co]=cls(s,c.par[i]);return `<td class="${segC(i)}"><span class="mark ${sh} ${co}" style="margin:0 auto">${s==null?"":s}</span></td>`;},fs,ft)}</tr>`;};
   if(st.mode==="ind"){
-    h+=`<tr class="pairhead a"><td colspan="${span}">Jugadores</td></tr>`;
+    h+=`<tr class="pairhead a"><td colspan="${span}"><span class="ph-l">Jugadores</span></td></tr>`;
     act().forEach(p=>{h+=playerRow(p);});
-    h+=`<tr class="win"><td>Gana el hoyo</td>${idx.map(i=>{const w=indWinner(i);
-      return `<td class="${w>=0&&w!=null?"wA":"wT"}">${w==null?"":w<0?"=":esc(initials(st.names[w]))}</td>`;}).join("")}<td></td>${withTot?"<td></td>":""}</tr>`;
+    h+=`<tr class="win"><td>Gana el hoyo</td>${row(i=>{const w=indWinner(i);
+      return `<td class="${w>=0&&w!=null?"wA":"wT"}">${w==null?"":w<0?"=":esc(initials(st.names[w]))}</td>`;},empty,empty)}</tr>`;
   }else if(!isCol()){
     [["a",[0,1],"Pareja A"],["b",[2,3],"Pareja B"]].forEach(([k,ps,lab])=>{
-      h+=`<tr class="pairhead ${k}"><td colspan="${span}">${lab}</td></tr>`;
+      h+=`<tr class="pairhead ${k}"><td colspan="${span}"><span class="ph-l">${lab}</span></td></tr>`;
       ps.forEach(p=>{h+=playerRow(p);});
-      h+=bestRow("Mejor neto",c.par.map((_,i)=>bestNet(ps,i)),"best");
-    });
+      h+=bestRow("Mejor neto",c.par.map((_,i)=>bestNet(ps,i)),"best");});
   }else{
-    h+=`<tr class="pairhead a"><td colspan="${span}">Jugadores</td></tr>`;
+    h+=`<tr class="pairhead a"><td colspan="${span}"><span class="ph-l">Jugadores</span></td></tr>`;
     [0,1,2,3].forEach(p=>{h+=playerRow(p);});
-    h+=`<tr class="pairhead b"><td colspan="${span}">Parejas · cambian cada ${segLen()} hoyos</td></tr>`;
-    h+=`<tr class="mate"><td>Socio de ${esc(short(st.names[0]))}</td>${idx.map(i=>`<td class="${segC(i)}">${esc(initials(st.names[teamsAt(i)[0][1]]))}</td>`).join("")}<td></td>${withTot?"<td></td>":""}</tr>`;
+    h+=`<tr class="pairhead b"><td colspan="${span}"><span class="ph-l">Parejas · cambian cada ${segLen()} hoyos</span></td></tr>`;
+    h+=`<tr class="mate"><td>Socio de ${esc(short(st.names[0]))}</td>${row(i=>`<td class="${segC(i)}">${esc(initials(st.names[teamsAt(i)[0][1]]))}</td>`,empty,empty)}</tr>`;
     const tA=c.par.map((_,i)=>bestNet(teamsAt(i)[0],i)), tB=c.par.map((_,i)=>bestNet(teamsAt(i)[1],i));
     h+=bestRow(`<span class="wA">Neto c/ ${esc(short(st.names[0]))}</span>`,tA,"team");
     h+=bestRow(`<span class="wB">Neto rival</span>`,tB,"team");
-    const R=colRun();
-    h+=`<tr class="win"><td>Va ganando</td>${idx.map(i=>{const x=R[i];const m=x.mult>1?`<sup class="mult">x${x.mult}</sup>`:"";
+    const RR=colRun();
+    h+=`<tr class="win"><td>Va ganando</td>${row(i=>{const x=RR[i];const m=x.mult>1?`<sup class="mult">x${x.mult}</sup>`:"";
       if(x.run==null)return `<td class="${segC(i)}">${m}</td>`;
-      const cl=x.run>0?"wA":x.run<0?"wB":"wT";return `<td class="${segC(i)} ${cl}">${x.run===0?"=":"+"+Math.abs(x.run)}${m}</td>`;}).join("")}<td></td>${withTot?"<td></td>":""}</tr>`;
+      const cl=x.run>0?"wA":x.run<0?"wB":"wT";return `<td class="${segC(i)} ${cl}">${x.run===0?"=":"+"+Math.abs(x.run)}${m}</td>`;},empty,empty)}</tr>`;
   }
-  $(tid).innerHTML=h;
-}
-// arr = golpes mostrados (gross), net = netos para el resultado contra el par
-function totCells(arr,net,c,idx,withTot){
-  const one=ids=>{const pl=ids.filter(i=>arr[i]!=null&&arr[i]!=="");if(!pl.length)return "";
-    const S=sum(pl.map(i=>arr[i]));const T=sum(pl.map(i=>net[i]))-sum(pl.map(i=>c.par[i]));
-    return S+`<span class="topar ${T<0?"c-under":T>0?"c-over":""}">${fmtTo(T)}</span>`;};
-  let out=`<td class="sum">${one(idx)}</td>`;
-  if(withTot)out+=`<td class="sum">${one(c.par.map((_,i)=>i))}</td>`;
-  return out;
+  const tb=$(tid);tb.className="sc-wide";tb.style.minWidth=(126+n*36+(R9.length+(withTot?1:0))*44)+"px";tb.innerHTML=h;
 }
 function renderSummary(){const c=cur();const sc=scores();
   if(isCol()){renderColSummary();return;}
@@ -613,9 +616,7 @@ function renderPlayers(){renderNpl();const c=cur();const PH=playHcp();const tees
 function render(){const c=cur();const n=c.par.length;
   renderPlayers();
   renderHeader();
-  if(n===18){renderTable("t1",0,9,false);renderTable("t2",9,18,true);$("card2").hidden=false;}
-  else{renderTable("t1",0,9,false);$("card2").hidden=true;}
-  $("h-out").textContent="Hoyos 1–9";$("h-in").textContent="Hoyos 10–18";
+  renderTable("t1");$("h-out").textContent=n===18?"Desliza →":"";
   renderSummary();
   $("mode").value=st.mode;
   $("allow").value=String(st.allow);$("offlow").checked=!!st.offLow;
