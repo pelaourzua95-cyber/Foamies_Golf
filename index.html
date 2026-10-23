@@ -88,6 +88,33 @@ tr.win td{height:30px;font-size:13px;font-weight:700;letter-spacing:-.02em}
 .lv-on .code{letter-spacing:.15em;color:var(--accent)}
 .lv-btns{display:flex;gap:8px}
 .lv-groups{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.lv-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;background:var(--row);padding:4px;border-radius:10px;border:1px solid var(--line)}
+.lv-tab{border:0;border-radius:7px;background:transparent;color:var(--muted);font:700 14px var(--f-num);letter-spacing:.08em;text-transform:uppercase;padding:10px;cursor:pointer}
+.lv-tab.on{background:var(--band);color:#fff}
+.lv-cardwrap{padding-left:0;padding-right:0}
+.lv-cardwrap h3,.lv-cardwrap .src{padding:0 14px}
+.lv-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.lv-card{border-collapse:separate;border-spacing:0;min-width:max-content;width:auto;table-layout:auto;font-family:var(--f-num);font-variant-numeric:tabular-nums}
+table.lv-card th,table.lv-card td{height:40px;min-width:32px;padding:0 2px;text-align:center;border-bottom:1px solid var(--line);font-size:15px;white-space:nowrap}
+table.lv-card thead th{background:var(--band);color:#fff;font-weight:600;height:32px}
+table.lv-card .lv-st{position:sticky;left:0;z-index:2;background:var(--card);text-align:left;padding:0 10px 0 14px;min-width:118px;max-width:150px;border-right:1px solid var(--line)}
+table.lv-card thead .lv-st{background:var(--band);color:#fff}
+table.lv-card .lv-st b{display:block;font-size:14px;letter-spacing:.04em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis}
+table.lv-card .lv-st small{display:block;font:400 11px var(--f-body);color:var(--muted)}
+table.lv-card .lv-sum{background:var(--row);font-weight:700;min-width:38px}
+table.lv-card thead .lv-sum{background:var(--band)}
+table.lv-card tr.lv-par td{font-weight:700;background:var(--row)}
+table.lv-card tr.lv-hcp td{font-size:12px;color:var(--muted);height:26px}
+table.lv-card .mark{width:26px;height:26px;margin:0 auto;position:relative;font-size:16px}
+#live .hx-head h2{font-size:clamp(20px,6vw,28px);line-height:1.05}
+table.lv-card thead tr.lv-par .lv-st,table.lv-card thead tr.lv-hcp .lv-st{background:var(--row);color:var(--ink)}
+table.lv-card thead tr.lv-hcp .lv-st{color:var(--muted);background:var(--card)}
+table.lv-card tr.lv-par td,table.lv-card tr.lv-hcp td{color:var(--ink)}
+table.lv-card tr.lv-hcp td{color:var(--muted)}
+table.lv-card td.lv-st{min-width:132px;max-width:160px;letter-spacing:0}
+table.lv-card td.lv-st small{text-transform:none;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lv-dot{position:absolute;top:-6px;right:-6px;font-style:normal;font-size:10px;color:var(--accent);letter-spacing:-1px}
+table.lv-card .lv-net{font-size:16px}
 .lv-lb .lb-name small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
 .hx-open{width:100%;padding:18px 16px;font-size:18px;color:var(--accent)!important;border:3px solid var(--accent)!important;box-shadow:0 0 0 3px var(--bg),0 0 0 6px var(--accent);margin:4px 0}
 .hx-open:hover{filter:brightness(1.12)}
@@ -331,7 +358,9 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
     <div class="hx-top"><div class="hx-head"><div><h2 id="lvTitle">En vivo</h2><div class="hx-meta" id="lvMeta"></div></div><button type="button" class="btn" id="lvClose">Tarjeta</button></div></div>
     <div class="hx-body">
       <div class="lv-groups" id="lvGroups"></div>
-      <div class="stand"><h3>Tabla general · neto</h3><div class="scroll"><table class="lb lv-lb" id="lvTable"></table></div></div>
+      <div class="lv-tabs" role="tablist"><button type="button" class="lv-tab on" data-tab="tabla" role="tab" aria-selected="true">Tabla</button><button type="button" class="lv-tab" data-tab="tarjeta" role="tab" aria-selected="false">Tarjeta hoyo a hoyo</button></div>
+      <div class="stand" id="lvTabTabla"><h3>Tabla general · neto</h3><div class="scroll"><table class="lb lv-lb" id="lvTable"></table></div></div>
+      <div class="stand lv-cardwrap" id="lvTabTarjeta" hidden><h3>Tarjeta de todos · golpes por hoyo</h3><div class="scroll lv-scroll"><table class="lv-card" id="lvCard"></table></div><p class="src">Desliza hacia el lado para ver la vuelta. Círculo: birdie · cuadrado: bogey. Total con neto contra el par.</p></div>
       <p class="src" id="lvStatus"></p>
     </div>
     <div class="hx-foot"><button type="button" class="btn primary" id="lvRefresh">Actualizar ahora</button></div>
@@ -867,9 +896,28 @@ document.addEventListener("click",async e=>{const b=e.target.closest("button");i
   if(b.id==="lvRefresh"){loadLive();return;}});
 let confirmJoin=false;
 
+// Tarjeta completa de la jornada (todos los jugadores, hoyo a hoyo)
+function renderLiveCard(c,rows){const n=c.par.length;const nines=n===18?[[0,9,"Out"],[9,18,"In"]]:[[0,n,"Out"]];
+  const sub=(arr,a,b)=>arr.slice(a,b).reduce((x,y)=>x+(y||0),0);
+  let h=`<thead><tr><th class="lv-st">Hoyo</th>`;
+  nines.forEach(([a,b,lab])=>{for(let i=a;i<b;i++)h+=`<th>${i+1}</th>`;h+=`<th class="lv-sum">${lab}</th>`;});
+  h+=`<th class="lv-sum">Tot</th><th class="lv-sum">Neto</th></tr>`;
+  h+=`<tr class="lv-par"><td class="lv-st">Par</td>`;nines.forEach(([a,b])=>{for(let i=a;i<b;i++)h+=`<td>${c.par[i]}</td>`;h+=`<td class="lv-sum">${sub(c.par,a,b)}</td>`;});
+  h+=`<td class="lv-sum">${sum(c.par)}</td><td class="lv-sum"></td></tr>`;
+  if(c.si){h+=`<tr class="lv-hcp"><td class="lv-st">Hcp</td>`;nines.forEach(([a,b])=>{for(let i=a;i<b;i++)h+=`<td>${c.si[i]}</td>`;h+=`<td class="lv-sum"></td>`;});h+=`<td class="lv-sum"></td><td class="lv-sum"></td></tr>`;}
+  h+=`</thead><tbody>`;
+  rows.forEach(x=>{h+=`<tr><td class="lv-st"><b>${esc(x.n)}</b><small>${esc(x.grupo)} · juega ${fmtH(x.ph)}</small></td>`;
+    nines.forEach(([a,b])=>{for(let i=a;i<b;i++){const s=x.g[i];const [sh,co]=cls(s,c.par[i]);
+        const k=strokesFor(c,x.ph,i);h+=`<td><span class="mark ${sh} ${co}">${s||""}${k>0&&s?`<i class="lv-dot">${"•".repeat(Math.min(k,3))}</i>`:""}</span></td>`;}
+      const pl=[...Array(b-a).keys()].map(j=>a+j).filter(i=>x.g[i]);h+=`<td class="lv-sum">${pl.length?sub(x.g,a,b):""}</td>`;});
+    h+=`<td class="lv-sum">${x.thru?x.gross:""}</td><td class="lv-sum lv-net ${x.thru?(x.tp<0?"c-under":x.tp>0?"c-over":""):""}">${x.thru?fmtTo(x.tp):"–"}</td></tr>`;});
+  $("lvCard").innerHTML=h+`</tbody>`;}
+document.addEventListener("click",e=>{const tb=e.target.closest(".lv-tab");if(!tb)return;const k=tb.dataset.tab;st.lvTab=k;save();
+  document.querySelectorAll(".lv-tab").forEach(x=>{const on=x.dataset.tab===k;x.classList.toggle("on",on);x.setAttribute("aria-selected",on);});
+  $("lvTabTabla").hidden=k!=="tabla";$("lvTabTarjeta").hidden=k!=="tarjeta";});
 // Tabla general
 let liveTimer=null;
-function openLive(){$("live").hidden=false;document.body.classList.add("noscroll");flush();loadLive();liveTimer=setInterval(loadLive,15000);}
+function openLive(){const k=st.lvTab||"tabla";document.querySelectorAll(".lv-tab").forEach(x=>{const on=x.dataset.tab===k;x.classList.toggle("on",on);x.setAttribute("aria-selected",on);});$("lvTabTabla").hidden=k!=="tabla";$("lvTabTarjeta").hidden=k!=="tarjeta";$("live").hidden=false;document.body.classList.add("noscroll");flush();loadLive();liveTimer=setInterval(loadLive,15000);}
 function closeLive(){$("live").hidden=true;document.body.classList.remove("noscroll");clearInterval(liveTimer);}
 function chFor(c,j){const i=j.i==null?0:Number(j.i);const rs=c.rs&&c.rs[j.tee];
   return rs?Math.round(i*rs[1]/113+rs[0]-sum(c.par)):Math.round(c.par.length===9?i/2:i);}
@@ -880,9 +928,10 @@ async function loadLive(){if(!st.live)return;$("lvStatus").textContent="Actualiz
     const c=COURSES.find(x=>x.label===r.jornada.cancha)||cur();const pct=r.jornada.porcentaje||100;const rows=[];
     r.grupos.forEach(g=>{const d=g.data||{};(d.jugadores||[]).forEach(j=>{const ph=Math.round(chFor(c,j)*pct/100);let thru=0,gross=0,net=0,par=0,last=0;
       c.par.forEach((pp,i)=>{const s=j.g&&j.g[i];if(!s)return;thru++;last=Math.max(last,i+1);gross+=s;net+=s-strokesFor(c,ph,i);par+=pp;});
-      rows.push({n:j.n,grupo:g.grupo,thru,last,gross,tp:net-par,ph,t:g.t});});});
+      rows.push({n:j.n,grupo:g.grupo,thru,last,gross,tp:net-par,ph,t:g.t,g:(j.g||[]).slice(0,c.par.length),net:c.par.map((pp,i)=>{const s=j.g&&j.g[i];return s?s-strokesFor(c,ph,i):null;})});});});
     rows.sort((a,b)=>(b.thru>0)-(a.thru>0)||a.tp-b.tp||b.thru-a.thru);
     let pos=0,prev=null;
+    renderLiveCard(c,rows);
     $("lvTitle").textContent=r.jornada.nombre;
     $("lvMeta").textContent=`${r.jornada.cancha} · Código ${r.jornada.id} · ${pct}% del HDC`;
     $("lvTable").innerHTML=`<tr><th>Pos</th><th>Jugador</th><th>Neto</th><th>Hoyo</th><th>Golpes</th></tr>`+rows.map((x,k)=>{if(x.tp!==prev){pos=k+1;prev=x.tp;}
