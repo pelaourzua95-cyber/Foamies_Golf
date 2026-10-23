@@ -122,10 +122,12 @@ table.lb .lb-big{font-size:20px;font-weight:700}
 .card h2 span{color:var(--muted);font-weight:500}
 .scroll{overflow-x:auto}
 table{border-collapse:collapse;width:100%;min-width:360px;font-family:var(--f-num);font-variant-numeric:tabular-nums;table-layout:fixed}
-col.lab{width:118px} col.tot{width:40px}
+col.lab{width:108px} col.tot{width:40px}
+.hhead{display:flex;justify-content:space-between;align-items:center;padding-right:4px}
+.hdc{width:30px;text-align:center;font-size:11px;letter-spacing:.08em;color:var(--accent)}
 .pwrap{display:flex;align-items:center;gap:4px;padding-right:4px}
 .pwrap .pname{flex:1;min-width:0}
-.phcp{width:34px;flex:none;border:1px solid var(--line);border-radius:4px;background:var(--row);color:var(--ink);font:600 13px var(--f-num);text-align:center;padding:4px 0}
+.phcp{width:30px;flex:none;border:1px solid var(--line);border-radius:4px;background:var(--row);color:var(--ink);font:600 13px var(--f-num);text-align:center;padding:4px 0}
 .phcp::placeholder{color:var(--muted);font-weight:500;font-size:11px}
 .phcp:focus{outline:2px solid var(--accent);outline-offset:1px}
 .dots{position:absolute;top:-4px;right:-5px;font-style:normal;font-size:11px;line-height:1;color:var(--accent);letter-spacing:-1px;pointer-events:none}
@@ -140,7 +142,7 @@ col.lab{width:118px} col.tot{width:40px}
 th,td{text-align:center;padding:0;height:34px;border-bottom:1px solid var(--line);font-weight:500;font-size:15px}
 th:first-child,td:first-child{text-align:left;padding-left:10px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 tr.hole th{background:var(--band);color:var(--band-ink);font-weight:600;height:30px}
-tr.tee td{font-size:14px;color:var(--muted);height:28px}
+tr.tee td{font-size:13px;letter-spacing:-.03em;color:var(--muted);height:28px}
 tr.tee td:first-child{display:flex;align-items:center;gap:6px;height:28px}
 .sw{width:10px;height:10px;border-radius:2px;border:1px solid var(--line);flex:none}
 tr.hcp td{font-size:13px;color:var(--muted);height:26px}
@@ -355,7 +357,7 @@ function renderTable(tid,from,to,withTot){const c=cur();const sc=scores();const 
   const idx=[];for(let i=from;i<to;i++)idx.push(i);
   const sumLbl=from===0?"Out":"In";
   let h=`<colgroup><col class="lab">${idx.map(()=>"<col>").join("")}<col class="tot">${withTot?'<col class="tot">':""}</colgroup>`;
-  h+=`<tr class="hole"><th>Hoyo</th>${idx.map(i=>`<th>${i+1}</th>`).join("")}<th>${sumLbl}</th>${withTot?"<th>Tot</th>":""}</tr>`;
+  h+=`<tr class="hole"><th><div class="hhead"><span>Hoyo</span><span class="hdc" title="Hándicap de cada jugador">HDC</span></div></th>${idx.map(i=>`<th>${i+1}</th>`).join("")}<th>${sumLbl}</th>${withTot?"<th>Tot</th>":""}</tr>`;
   for(const [t,v] of Object.entries(c.tees)){
     const part=idx.map(i=>v[i]);const s=part.some(x=>x==null)?"—":sum(part);
     const all=v.some(x=>x==null)?"—":sum(v);
@@ -368,7 +370,7 @@ function renderTable(tid,from,to,withTot){const c=cur();const sc=scores();const 
   const segC=i=>(isCol()?(segOf(i)%2?" seg1":"")+(segStart(i)&&i!==from?" segstart":""):"");
   const playerRow=p=>{
     const hv=st.hcp[p]==null?"":st.hcp[p];
-    let r=`<tr class="ply"><td><div class="pwrap"><input class="pname" id="n${tid}${p}" data-p="${p}" value="${esc(st.names[p])}" aria-label="Nombre jugador ${p+1}"><input class="phcp" id="h${tid}${p}" data-p="${p}" inputmode="decimal" maxlength="4" value="${hv}" placeholder="Hcp" aria-label="Hándicap de ${esc(st.names[p])}" title="Hándicap de juego: ${PH[p]} golpes"></div></td>`;
+    let r=`<tr class="ply"><td><div class="pwrap"><input class="pname" id="n${tid}${p}" data-p="${p}" value="${esc(st.names[p])}" aria-label="Nombre jugador ${p+1}"><input class="phcp" id="h${tid}${p}" data-p="${p}" inputmode="decimal" maxlength="4" value="${hv}" placeholder="HDC" aria-label="Hándicap de ${esc(st.names[p])}" title="Hándicap de juego: ${PH[p]} golpes"></div></td>`;
     idx.forEach(i=>{const s=sc[p][i];const [sh,co]=cls(s,c.par[i]);
       r+=`<td class="${segC(i)}"><div class="cell mark ${sh} ${co}">${dots(strokesOn(PH[p],i))}<input id="s${p}-${i}" inputmode="numeric" maxlength="2" data-p="${p}" data-i="${i}" value="${s||""}" aria-label="${esc(st.names[p])} hoyo ${i+1}"></div></td>`;});
     return r+totCells(sc[p],c.par.map((_,i)=>netOf(p,i)),c,idx,withTot)+"</tr>";};
