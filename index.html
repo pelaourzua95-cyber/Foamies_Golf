@@ -74,6 +74,14 @@ tr.win td{height:30px;font-size:13px;font-weight:700;letter-spacing:-.02em}
 .vs b{font-family:var(--f-num);font-size:22px;font-variant-numeric:tabular-nums;text-align:right}
 .vs .lead{font-weight:600}
 .colsum{display:flex;flex-direction:column;gap:12px}
+#roster{position:fixed;z-index:40;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.22);max-height:280px;overflow:auto;font-family:var(--f-body)}
+#roster .rs-h{font:600 11px var(--f-num);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:8px 10px 4px}
+#roster .rs-i{display:flex;align-items:center;gap:8px;padding:9px 6px 9px 10px;border-top:1px solid var(--line);cursor:pointer;font-size:15px}
+#roster .rs-i:hover{background:var(--row)}
+#roster .rs-i span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#roster .rs-i small{color:var(--muted);font-size:13px;white-space:nowrap}
+#roster .rs-x{border:0;background:transparent;color:var(--muted);font-size:18px;line-height:1;padding:2px 6px;cursor:pointer;border-radius:4px}
+#roster .rs-x:hover{color:var(--birdie)}
 table.lb{min-width:0}
 table.lb th{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;height:28px}
 table.lb td{height:36px}
@@ -227,7 +235,7 @@ let st=load();
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.scores)return s;}catch(e){}
   // Ejemplo inicial: Los Leones con los primeros hoyos cargados
   return {course:0,names:["Jugador 1","Jugador 2","Jugador 3","Jugador 4"],hcp:[8,18,12,22],allow:85,offLow:true,scores:{"0":[[4,5,3,6,4,3],[5,4,2,5,5,4],[4,4,4,5,3,3],[3,6,3,4,4,5]]},example:true};}
-st.hcp=st.hcp||[null,null,null,null];if(st.allow==null)st.allow=85;if(st.offLow==null)st.offLow=true;if(!st.mode)st.mode="2v2";
+st.hcp=st.hcp||[null,null,null,null];if(st.allow==null)st.allow=85;if(st.offLow==null)st.offLow=true;if(!st.mode)st.mode="2v2";if(!st.roster)st.roster=[];
 function save(){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}
 const $=id=>document.getElementById(id);
 function cur(){return COURSES[st.course]||COURSES[0];}
@@ -294,6 +302,33 @@ function colRun(){const c=cur();const n=c.par.length;const out=[];let carry=0,ru
 function indWinner(i){if(![0,1,2,3].every(p=>scores()[p][i]))return null;
   const n=[0,1,2,3].map(p=>netOf(p,i));const m=Math.min(...n);const w=n.map((v,p)=>v===m?p:-1).filter(p=>p>=0);
   return w.length===1?w[0]:-1;}
+// ---- Jugadores guardados (se recuerdan en este teléfono) ----
+function isDefaultName(n){return !n||/^jugador\s*\d+$/i.test(n.trim());}
+function remember(p){const n=(st.names[p]||"").trim();if(isDefaultName(n))return;
+  const k=n.toLowerCase();let r=st.roster.find(x=>x.n.toLowerCase()===k);
+  if(!r){r={n,h:null,t:0};st.roster.push(r);}
+  r.n=n;if(st.hcp[p]!=null)r.h=st.hcp[p];r.t=Date.now();save();}
+let rosterFor=null;
+function rosterBox(){let b=document.getElementById("roster");if(!b){b=document.createElement("div");b.id="roster";b.setAttribute("role","listbox");b.hidden=true;document.body.appendChild(b);
+  b.addEventListener("pointerdown",e=>{e.preventDefault();const del=e.target.closest("[data-del]");
+    if(del){st.roster=st.roster.filter(x=>x.n!==del.dataset.del);save();if(rosterFor)openRoster(rosterFor);return;}
+    const it=e.target.closest("[data-n]");if(it&&rosterFor)pickRoster(+rosterFor.dataset.p,it.dataset.n);});}
+  return b;}
+function openRoster(inp){rosterFor=inp;const b=rosterBox();const p=+inp.dataset.p;
+  const q=isDefaultName(inp.value)?"":inp.value.trim().toLowerCase();
+  const others=st.names.filter((_,i)=>i!==p).map(n=>(n||"").trim().toLowerCase());
+  const items=st.roster.filter(r=>!others.includes(r.n.toLowerCase())&&(!q||r.n.toLowerCase().includes(q))&&r.n.toLowerCase()!==q)
+    .sort((a,b)=>b.t-a.t).slice(0,12);
+  if(!items.length){b.hidden=true;return;}
+  b.innerHTML=`<div class="rs-h">Jugadores guardados</div>`+items.map(r=>`<div class="rs-i" data-n="${esc(r.n)}"><span>${esc(r.n)}</span><small>${r.h==null?"":"Hcp "+(r.h<0?"+"+(-r.h):r.h)}</small><button type="button" class="rs-x" data-del="${esc(r.n)}" aria-label="Olvidar a ${esc(r.n)}">×</button></div>`).join("");
+  const rc=inp.getBoundingClientRect();b.style.left=Math.max(8,rc.left)+"px";b.style.top=(rc.bottom+4)+"px";
+  b.style.width=Math.min(260,window.innerWidth-16)+"px";b.hidden=false;}
+function closeRoster(){const b=document.getElementById("roster");if(b)b.hidden=true;rosterFor=null;}
+function pickRoster(p,n){const r=st.roster.find(x=>x.n===n);if(!r)return;st.names[p]=r.n;st.hcp[p]=r.h;r.t=Date.now();st.example=false;save();closeRoster();
+  if(document.activeElement)document.activeElement.blur();render();}
+document.addEventListener("focusin",e=>{if(e.target.matches(".pname")){if(isDefaultName(e.target.value))e.target.select();openRoster(e.target);}});
+document.addEventListener("focusout",e=>{if(e.target.matches(".pname"))setTimeout(()=>{if(!document.activeElement||!document.activeElement.matches(".pname"))closeRoster();},150);});
+window.addEventListener("scroll",()=>{if(rosterFor)openRoster(rosterFor);},{passive:true});
 function short(n){n=String(n||"").trim();return n.split(/\s+/)[0]||n;}
 function initials(n){const w=String(n||"").trim().split(/\s+/).filter(Boolean);if(!w.length)return "?";
   if(w.length>1)return (w[0][0]+w[1][0]).toUpperCase();return w[0].slice(0,2).toUpperCase();}
@@ -417,7 +452,7 @@ document.addEventListener("input",e=>{const t=e.target;
   if(t.matches(".cell input")){t.value=t.value.replace(/\D/g,"").slice(0,2);
     const p=+t.dataset.p,i=+t.dataset.i;const v=parseInt(t.value,10);scores()[p][i]=v>0?v:null;st.example=false;save();
     const c=cur();const [sh,co]=cls(scores()[p][i],c.par[i]);t.parentElement.className="cell mark "+sh+" "+co;}
-  if(t.matches(".pname")){st.names[+t.dataset.p]=t.value;save();}
+  if(t.matches(".pname")){st.names[+t.dataset.p]=t.value;save();openRoster(t);}
   if(t.matches(".phcp")){t.value=t.value.replace(/[^0-9.,+]/g,"").slice(0,4);
     const raw=t.value.replace(",",".");let v=raw===""?null:(raw.startsWith("+")?-parseFloat(raw.slice(1)):parseFloat(raw));
     if(v!=null&&isNaN(v))v=null;if(v!=null)v=Math.max(-10,Math.min(54,v));st.hcp[+t.dataset.p]=v;save();}
@@ -426,6 +461,7 @@ document.addEventListener("change",e=>{
   if(e.target.id==="mode"){st.mode=e.target.value;save();render();return;}
   if(e.target.id==="allow"){st.allow=+e.target.value;save();render();return;}
   if(e.target.id==="offlow"){st.offLow=e.target.checked;save();render();return;}
+  if(e.target.matches(".pname,.phcp"))remember(+e.target.dataset.p);
   if(e.target.matches(".cell input,.pname,.phcp")){const id=document.activeElement&&document.activeElement.id;render();if(id&&$(id))$(id).focus();}});
 document.addEventListener("keydown",e=>{const t=e.target;if(t.matches(".cell input")&&e.key==="Enter"){e.preventDefault();
   const p=+t.dataset.p,i=+t.dataset.i;const nx=$("s"+p+"-"+(i+1));t.blur();render();const n2=$("s"+p+"-"+(i+1));if(n2)n2.focus();}});
