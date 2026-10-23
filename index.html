@@ -74,6 +74,13 @@ tr.win td{height:30px;font-size:13px;font-weight:700;letter-spacing:-.02em}
 .vs b{font-family:var(--f-num);font-size:22px;font-variant-numeric:tabular-nums;text-align:right}
 .vs .lead{font-weight:600}
 .colsum{display:flex;flex-direction:column;gap:12px}
+.save{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding-top:4px;border-top:1px solid var(--line)}
+.btn.primary{background:var(--band);color:#fff;border-color:var(--band);padding:13px 20px;font-size:15px;text-decoration:none;text-align:center}
+.btn.primary:disabled{opacity:.6}
+.shot{position:fixed;inset:0;z-index:60;background:rgba(5,12,22,.72);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.shot-box{background:var(--card);color:var(--ink);border-radius:12px;padding:14px;max-width:560px;width:100%;display:flex;flex-direction:column;gap:10px}
+.shot-top{display:flex;justify-content:space-between;align-items:center;font-family:var(--f-num);font-size:18px;letter-spacing:.08em;text-transform:uppercase}
+.shot-box img{width:100%;border:1px solid var(--line);border-radius:6px;background:#fff}
 #roster{position:fixed;z-index:40;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.22);max-height:280px;overflow:auto;font-family:var(--f-body)}
 #roster .rs-h{font:600 11px var(--f-num);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:8px 10px 4px}
 #roster .rs-i{display:flex;align-items:center;gap:8px;padding:9px 6px 9px 10px;border-top:1px solid var(--line);cursor:pointer;font-size:15px}
@@ -223,7 +230,16 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
     </div>
     <div id="resetBox"><button class="btn" id="reset" type="button">Borrar puntajes</button></div>
   </div>
+  <div class="save"><button class="btn primary" id="saveRound" type="button">Guardar vuelta</button><span class="src">Crea una imagen de la tarjeta para compartir o guardar en el teléfono.</span></div>
   <div class="src" id="src"></div>
+  <div id="shot" class="shot" hidden>
+    <div class="shot-box">
+      <div class="shot-top"><b>Tu vuelta</b><button class="btn" id="shotClose" type="button">Cerrar</button></div>
+      <p class="src" id="shotMsg">Mantén presionada la imagen para guardarla o compartirla.</p>
+      <img id="shotImg" alt="Imagen de la tarjeta de la vuelta">
+      <a class="btn primary" id="shotDl" href="#">Descargar imagen</a>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -492,6 +508,108 @@ $("resetBox").addEventListener("click",e=>{const b=e.target.closest("button");if
   else{if(b.id==="yes"){st.scores[String(cur().id)]=[[],[],[],[]];st.example=false;save();render();}
     $("resetBox").innerHTML=`<button class="btn" id="reset" type="button">Borrar puntajes</button>`;}});
 render();
+// ---- Guardar vuelta como imagen (PNG) ----
+const MODE_NAME={"2v2":"2v2","col":"Colombiana","colhard":"Colombiana hardmode","ind":"Individual"};
+const IMG={bg:"#ffffff",ink:"#0d1726",muted:"#5d6878",line:"#d5dbe4",band:"#0b2545",row:"#f2f5f9",accent:"#c9a227",red:"#c4122f",blue:"#1d4ea0",gold:"#8a6514",seg:"rgba(201,162,39,.12)"};
+const FN='"Barlow Condensed","Arial Narrow",sans-serif', FB='"Barlow",system-ui,sans-serif';
+
+function shotSummary(){const c=cur();const N=st.names;const L=[];
+  if(st.mode==="2v2"||!st.mode){[[0,1],[2,3]].forEach((ps,k)=>{let pl=0,s=0,p=0;c.par.forEach((pp,i)=>{const m=bestNet(ps,i);if(m!=null){pl++;s+=m;p+=pp;}});
+      L.push({t:`Pareja ${k?"B":"A"} · ${N[ps[0]]} y ${N[ps[1]]}`,v:pl?fmtTo(s-p):"–",c:pl?(s-p<0?IMG.red:s-p>0?IMG.blue:IMG.ink):IMG.muted,sub:pl?`Mejor bola neta · ${pl} hoyos`:""});});}
+  else if(isCol()){const R=colRun();const Lg=segLen();const bal=[0,0,0,0];
+    PAIRINGS.forEach((pr,s)=>{let d=0,pl=0;for(let i=s*Lg;i<(s+1)*Lg;i++){if(R[i].d==null)continue;pl++;d+=R[i].d;}
+      pr[0].forEach(p=>bal[p]+=d);pr[1].forEach(p=>bal[p]-=d);
+      const a=`${N[pr[0][0]]} y ${N[pr[0][1]]}`,b=`${N[pr[1][0]]} y ${N[pr[1][1]]}`;
+      L.push({t:`Hoyos ${s*Lg+1}–${(s+1)*Lg}: ${a} vs ${b}`,v:!pl?"–":d===0?"=":"+"+Math.abs(d),c:d>0?IMG.band:d<0?IMG.gold:IMG.muted,sub:!pl?"":d===0?"Van iguales":`Gana ${d>0?a:b}`});});
+    [0,1,2,3].sort((a,b)=>bal[b]-bal[a]).forEach(p=>L.push({t:N[p],v:bal[p]>0?"+"+bal[p]:bal[p]<0?"−"+(-bal[p]):"0",c:bal[p]>0?IMG.red:bal[p]<0?IMG.blue:IMG.ink,sub:"Balance"}));}
+  else{const rows=[0,1,2,3].map(p=>{let th=0,net=0,par=0,won=0;c.par.forEach((pp,i)=>{const s=scores()[p][i];if(!s)return;th++;net+=netOf(p,i);par+=pp;});
+      c.par.forEach((_,i)=>{if(indWinner(i)===p)won++;});return {p,th,tp:net-par,won};}).sort((a,b)=>(b.th>0)-(a.th>0)||a.tp-b.tp||b.won-a.won);
+    rows.forEach((r,k)=>L.push({t:`${k+1}. ${N[r.p]}`,v:r.th?fmtTo(r.tp):"–",c:r.tp<0?IMG.red:r.tp>0?IMG.blue:IMG.ink,sub:`${r.th} hoyos · ${r.won} ganados`}));}
+  return L;}
+
+function drawMark(g,x,y,val,par){if(val==null||val==="")return;const d=val-par;const col=d<0?IMG.red:d>0?IMG.blue:IMG.ink;
+  g.lineWidth=2.4;g.strokeStyle=col;
+  if(d<=-1){g.beginPath();g.arc(x,y,21,0,7);g.stroke();if(d<=-2){g.beginPath();g.arc(x,y,26.5,0,7);g.stroke();}}
+  if(d>=1){g.strokeRect(x-20,y-20,40,40);if(d>=2)g.strokeRect(x-25.5,y-25.5,51,51);}
+  g.fillStyle=col;g.font=`600 30px ${FN}`;g.textAlign="center";g.textBaseline="middle";g.fillText(String(val),x,y+1);}
+
+async function buildShot(){try{await document.fonts.ready;}catch(e){}
+  const c=cur();const n=c.par.length;const sc=scores();const PH=playHcp();
+  const W=1080,P=40,LAB=230,TOT=84,COLW=(W-2*P-LAB-2*TOT)/9,RH=62,HH=46;
+  const extra=st.mode==="2v2"?2:1;const rowsPerNine=2+Object.keys(c.tees).length+4+extra;
+  const nines=n===18?2:1;const sum=shotSummary();
+  const H=210+nines*(rowsPerNine*RH+HH+40)+60+sum.length*64+110;
+  const cv=document.createElement("canvas");const sc2=2;cv.width=W*sc2;cv.height=H*sc2;const g=cv.getContext("2d");g.scale(sc2,sc2);
+  g.fillStyle=IMG.bg;g.fillRect(0,0,W,H);
+  // cabecera
+  g.fillStyle=IMG.band;g.fillRect(0,0,W,180);g.fillStyle=IMG.accent;g.fillRect(0,180,W,6);
+  g.textAlign="left";g.textBaseline="alphabetic";g.fillStyle="rgba(255,255,255,.75)";g.font=`700 22px ${FN}`;
+  const fecha=new Date().toLocaleDateString("es-CL",{day:"numeric",month:"long",year:"numeric"});
+  g.fillText(`${MODE_NAME[st.mode]||"2v2"} · ${fecha}`.toUpperCase(),P,52);
+  g.fillStyle="#fff";g.font=`700 56px ${FN}`;let title=c.club.toUpperCase();while(g.measureText(title).width>W-2*P&&title.length>4)title=title.slice(0,-2)+"…";g.fillText(title,P,116);
+  g.fillStyle="rgba(255,255,255,.8)";g.font=`500 26px ${FB}`;
+  const tees=Object.entries(c.tees).map(([t,v])=>v.some(x=>x==null)?t:`${t} ${sum0(v).toLocaleString("es-CL")} yd`).join(" · ");
+  g.fillText(`${c.rec} · Par ${sum0(c.par)} · ${tees}`,P,156);
+  let y=220;
+  const runs=isCol()?colRun():null;
+  for(let k=0;k<nines;k++){const from=k*9,idx=[...Array(Math.min(9,n-from)).keys()].map(j=>from+j);
+    const cx=j=>P+LAB+COLW*j+COLW/2, tx=j=>P+LAB+COLW*9+TOT*j+TOT/2;
+    // fila hoyo
+    g.fillStyle=IMG.band;g.fillRect(P,y,W-2*P,HH);g.fillStyle="#fff";g.font=`700 22px ${FN}`;g.textBaseline="middle";
+    g.textAlign="left";g.fillText(k?"VUELTA":"IDA",P+14,y+HH/2);g.textAlign="center";
+    idx.forEach((i,j)=>g.fillText(String(i+1),cx(j),y+HH/2));g.fillText(k?"IN":"OUT",tx(0),y+HH/2);if(k===1||nines===1)g.fillText("TOT",tx(1),y+HH/2);
+    y+=HH;
+    if(isCol())idx.forEach((i,j)=>{if(segOf(i)%2){g.fillStyle=IMG.seg;g.fillRect(P+LAB+COLW*j,y,COLW,rowsPerNine*RH-RH*0);} });
+    const line=()=>{g.strokeStyle=IMG.line;g.lineWidth=1;g.beginPath();g.moveTo(P,y+RH);g.lineTo(W-P,y+RH);g.stroke();};
+    const label=(txt,col,font)=>{g.textAlign="left";g.fillStyle=col||IMG.muted;g.font=font||`600 22px ${FN}`;let s=txt;while(g.measureText(s).width>LAB-20&&s.length>3)s=s.slice(0,-2)+"…";g.fillText(s,P+14,y+RH/2);g.textAlign="center";};
+    const all=[...Array(n).keys()];
+    for(const [t,v] of Object.entries(c.tees)){label(t.toUpperCase());g.font=`500 22px ${FN}`;g.fillStyle=IMG.muted;
+      idx.forEach((i,j)=>g.fillText(v[i]==null?"—":String(v[i]),cx(j),y+RH/2));line();y+=RH;}
+    label("HCP");g.font=`500 22px ${FN}`;idx.forEach((i,j)=>g.fillText(c.si?String(c.si[i]):"—",cx(j),y+RH/2));line();y+=RH;
+    g.fillStyle=IMG.row;g.fillRect(P,y,W-2*P,RH);label("PAR",IMG.ink,`700 24px ${FN}`);g.font=`700 26px ${FN}`;g.fillStyle=IMG.ink;
+    idx.forEach((i,j)=>g.fillText(String(c.par[i]),cx(j),y+RH/2));g.fillText(String(sum0(idx.map(i=>c.par[i]))),tx(0),y+RH/2);if(k===1||nines===1)g.fillText(String(sum0(c.par)),tx(1),y+RH/2);line();y+=RH;
+    const totals=(arr,net,ids,j)=>{const pl=ids.filter(i=>arr[i]!=null);if(!pl.length)return;const S=sum0(pl.map(i=>arr[i]));const T=sum0(pl.map(i=>net[i]))-sum0(pl.map(i=>c.par[i]));
+      g.fillStyle=IMG.ink;g.font=`700 26px ${FN}`;g.fillText(String(S),tx(j),y+RH/2-9);g.font=`700 17px ${FN}`;g.fillStyle=T<0?IMG.red:T>0?IMG.blue:IMG.muted;g.fillText(fmtTo(T),tx(j),y+RH/2+16);};
+    const order=st.mode==="2v2"?[0,1,"A",2,3,"B"]:[0,1,2,3];
+    order.forEach(p=>{
+      if(p==="A"||p==="B"){const ps=p==="A"?[0,1]:[2,3];const arr=c.par.map((_,i)=>bestNet(ps,i));
+        g.fillStyle=IMG.row;g.fillRect(P,y,W-2*P,RH);label(`MEJOR NETO ${p}`,p==="A"?IMG.band:IMG.gold);
+        idx.forEach((i,j)=>drawMark(g,cx(j),y+RH/2,arr[i],c.par[i]));totals(arr,arr,idx,0);if(k===1||nines===1)totals(arr,arr,all,1);line();y+=RH;return;}
+      const h=st.hcp[p];label(`${N0(p)}${h==null?"":" ("+(h<0?"+"+(-h):h)+")"}`,IMG.ink,`600 23px ${FN}`);
+      idx.forEach((i,j)=>{drawMark(g,cx(j),y+RH/2,sc[p][i],c.par[i]);const s=strokesOn(PH[p],i);
+        if(s>0){g.fillStyle=IMG.accent;for(let d=0;d<Math.min(s,3);d++){g.beginPath();g.arc(cx(j)+24-d*8,y+9,3,0,7);g.fill();}}});
+      const net=c.par.map((_,i)=>netOf(p,i));totals(sc[p],net,idx,0);if(k===1||nines===1)totals(sc[p],net,all,1);line();y+=RH;});
+    if(isCol()){g.fillStyle=IMG.row;g.fillRect(P,y,W-2*P,RH);label("VA GANANDO",IMG.ink);
+      idx.forEach((i,j)=>{const x=runs[i];if(x.run==null)return;g.font=`700 24px ${FN}`;g.fillStyle=x.run>0?IMG.band:x.run<0?IMG.gold:IMG.muted;
+        g.fillText(x.run===0?"=":"+"+Math.abs(x.run),cx(j),y+RH/2);if(x.mult>1){g.font=`700 14px ${FN}`;g.fillStyle=IMG.accent;g.fillText("x"+x.mult,cx(j)+22,y+12);}});
+      line();y+=RH;}
+    if(st.mode==="ind"){g.fillStyle=IMG.row;g.fillRect(P,y,W-2*P,RH);label("GANA EL HOYO",IMG.ink);
+      idx.forEach((i,j)=>{const w=indWinner(i);if(w==null)return;g.font=`700 22px ${FN}`;g.fillStyle=w>=0?IMG.band:IMG.muted;g.fillText(w<0?"=":initials(st.names[w]),cx(j),y+RH/2);});line();y+=RH;}
+    y+=40;}
+  // resumen
+  g.textAlign="left";g.fillStyle=IMG.ink;g.font=`700 26px ${FN}`;g.fillText("RESULTADO",P,y+10);y+=40;
+  sum.forEach(s=>{g.fillStyle=IMG.row;g.fillRect(P,y,W-2*P,54);g.textAlign="left";g.textBaseline="middle";
+    g.fillStyle=IMG.ink;g.font=`600 24px ${FB}`;let t=s.t;while(g.measureText(t).width>W-2*P-260&&t.length>4)t=t.slice(0,-2)+"…";g.fillText(t,P+16,y+27);
+    g.textAlign="right";g.fillStyle=IMG.muted;g.font=`500 20px ${FB}`;if(s.sub)g.fillText(s.sub,W-P-110,y+27);
+    g.fillStyle=s.c;g.font=`700 34px ${FN}`;g.fillText(s.v,W-P-16,y+28);y+=64;});
+  // pie
+  y+=10;g.textAlign="left";g.font=`500 18px ${FB}`;g.fillStyle=IMG.muted;
+  g.fillText(`Neto con ${st.allow}% del hándicap${st.offLow?", golpes desde el más bajo":""}. Círculo: birdie · cuadrado: bogey.`,P,y+10);
+  return new Promise(r=>cv.toBlob(b=>r(b),"image/png"));}
+function sum0(a){return a.reduce((x,y)=>x+(y||0),0);}
+function N0(p){return String(st.names[p]||"Jugador "+(p+1)).toUpperCase();}
+
+async function saveRound(){const btn=$("saveRound");btn.disabled=true;btn.textContent="Generando…";
+  try{const blob=await buildShot();const c=cur();
+    const fname=`vuelta-${c.club.replace(/[^\wáéíóúñ]+/gi,"-").toLowerCase()}-${new Date().toISOString().slice(0,10)}.png`;
+    const file=new File([blob],fname,{type:"image/png"});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:"Vuelta de golf"});return;}catch(e){if(e&&e.name==="AbortError")return;}}
+    const url=URL.createObjectURL(blob);$("shotImg").src=url;$("shotDl").href=url;$("shotDl").download=fname;$("shot").hidden=false;
+  }catch(e){$("shotMsg").textContent="No se pudo generar la imagen. Intenta de nuevo.";$("shot").hidden=false;}
+  finally{btn.disabled=false;btn.textContent="Guardar vuelta";}}
+$("saveRound").addEventListener("click",saveRound);
+$("shotClose").addEventListener("click",()=>{$("shot").hidden=true;});
+
 </script>
 
 <script>
