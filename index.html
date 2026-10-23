@@ -301,7 +301,7 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
         </div>
         <div class="pick-mode">
           <label for="mode">Modalidad</label>
-          <select id="mode"><option value="2v2">2v2</option><option value="col">Colombiana</option><option value="colhard">Colombiana hardmode</option><option value="ind">Individual</option></select>
+          <select id="mode"><option value="ind">Individual</option><option value="2v2">2v2</option><option value="col">Colombiana</option><option value="colhard">Colombiana hardmode</option></select>
         </div>
       </div>
       <div id="list" role="listbox" hidden></div>
@@ -385,7 +385,7 @@ let st=load();
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.scores)return s;}catch(e){}
   // Ejemplo inicial: Los Leones con los primeros hoyos cargados
   return {course:0,names:["Jugador 1","Jugador 2","Jugador 3","Jugador 4"],hcp:[8,18,12,22],allow:85,offLow:true,scores:{"0":[[4,5,3,6,4,3],[5,4,2,5,5,4],[4,4,4,5,3,3],[3,6,3,4,4,5]]},example:true};}
-st.hcp=st.hcp||[null,null,null,null];if(st.allow==null)st.allow=85;if(st.offLow==null)st.offLow=true;if(!st.mode)st.mode="2v2";if(!st.roster)st.roster=[];if(!st.nInd)st.nInd=4;if(!st.tee)st.tee=["Azules","Azules","Azules","Azules"];
+st.hcp=st.hcp||[null,null,null,null];if(st.allow==null)st.allow=85;if(st.offLow==null)st.offLow=true;if(!st.mode||!st.modeDefInd){st.mode="ind";st.modeDefInd=true;}if(!st.roster)st.roster=[];if(!st.nInd)st.nInd=4;if(!st.tee)st.tee=["Azules","Azules","Azules","Azules"];
 function save(){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}
 const $=id=>document.getElementById(id);
 function cur(){return COURSES[st.course]||COURSES[0];}
