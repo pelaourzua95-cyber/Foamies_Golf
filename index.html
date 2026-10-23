@@ -927,7 +927,7 @@ function renderLiveCard(c,rows){const n=c.par.length;const nines=n===18?[[0,9,"O
   h+=`<td class="lv-sum">${sum(c.par)}</td><td class="lv-sum"></td></tr>`;
   if(c.si){h+=`<tr class="lv-hcp"><td class="lv-st">Hcp</td>`;nines.forEach(([a,b])=>{for(let i=a;i<b;i++)h+=`<td>${c.si[i]}</td>`;h+=`<td class="lv-sum"></td>`;});h+=`<td class="lv-sum"></td><td class="lv-sum"></td></tr>`;}
   h+=`</thead><tbody>`;
-  rows.forEach(x=>{h+=`<tr><td class="lv-st"><b>${esc(x.n)}</b><small>${esc(x.grupo)} · juega ${fmtH(x.ph)}</small></td>`;
+  rows.forEach(x=>{h+=`<tr><td class="lv-st"><b>${esc(x.n)}</b></td>`;
     nines.forEach(([a,b])=>{for(let i=a;i<b;i++){const s=x.g[i];const [sh,co]=cls(s,c.par[i]);
         const k=strokesFor(c,x.ph,i);h+=`<td><span class="mark ${sh} ${co}">${s||""}${k>0&&s?`<i class="lv-dot">${"•".repeat(Math.min(k,3))}</i>`:""}</span></td>`;}
       const pl=[...Array(b-a).keys()].map(j=>a+j).filter(i=>x.g[i]);h+=`<td class="lv-sum">${pl.length?sub(x.g,a,b):""}</td>`;});
@@ -968,8 +968,7 @@ async function buildLiveShot(){try{await document.fonts.ready;}catch(e){}
   rows.forEach((r,idx)=>{if(r.tp!==prev){pos=idx+1;prev=r.tp;}
     if(idx%2){g.fillStyle="rgba(11,37,69,.035)";g.fillRect(P,y,W-2*P,RH);}
     g.textAlign="center";g.fillStyle=IMG.ink;g.font=`700 28px ${FN}`;g.fillText(r.thru?String(pos):"–",xs.pos+POS/2,y+RH/2);
-    g.textAlign="left";g.font=`700 25px ${FN}`;let nm=String(r.n).toUpperCase();while(g.measureText(nm).width>NAME-20&&nm.length>3)nm=nm.slice(0,-2)+"…";g.fillText(nm,xs.name+10,y+RH/2-9);
-    g.font=`500 17px ${FB}`;g.fillStyle=IMG.muted;g.fillText(`${r.grupo} · juega ${fmtH(r.ph)}`,xs.name+10,y+RH/2+15);
+    g.textAlign="left";g.font=`700 25px ${FN}`;let nm=String(r.n).toUpperCase();while(g.measureText(nm).width>NAME-20&&nm.length>3)nm=nm.slice(0,-2)+"…";g.fillText(nm,xs.name+10,y+RH/2);
     for(let i=0;i<n;i++){drawMark(g,hx[i],y+RH/2,r.g[i],c.par[i]);const kk=strokesFor(c,r.ph,i);
       if(kk>0&&r.g[i]){g.fillStyle=IMG.accent;for(let d=0;d<Math.min(kk,3);d++){g.beginPath();g.arc(hx[i]+24-d*8,y+9,3,0,7);g.fill();}}}
     g.textAlign="center";g.fillStyle=IMG.ink;g.font=`700 26px ${FN}`;
@@ -1010,7 +1009,7 @@ async function loadLive(){if(!st.live)return;$("lvStatus").textContent="Actualiz
     $("lvTitle").textContent=r.jornada.nombre;
     $("lvMeta").textContent=`${r.jornada.cancha} · Código ${r.jornada.id} · ${pct}% del HDC`;
     $("lvTable").innerHTML=`<colgroup><col style="width:30px"><col><col style="width:48px"><col style="width:50px"><col style="width:40px"><col style="width:44px"></colgroup><tr><th>Pos</th><th>Jugador</th><th>Gross</th><th>Neto</th><th>Hoyo</th><th>Tot</th></tr>`+rows.map((x,k)=>{if(x.tp!==prev){pos=k+1;prev=x.tp;}
-      return `<tr><td>${x.thru?pos:"–"}</td><td class="lb-name">${esc(x.n)}<small>${esc(x.grupo)} · juega ${fmtH(x.ph)}</small></td><td class="lb-gross">${x.thru?fmtTo(x.gtp):"–"}</td><td class="lb-big ${x.thru?(x.tp<0?"c-under":x.tp>0?"c-over":""):""}">${x.thru?fmtTo(x.tp):"–"}</td><td>${x.thru?(x.thru===c.par.length?"F":x.last):"–"}</td><td>${x.thru?x.gross:"–"}</td></tr>`;}).join("");
+      return `<tr><td>${x.thru?pos:"–"}</td><td class="lb-name">${esc(x.n)}</td><td class="lb-gross">${x.thru?fmtTo(x.gtp):"–"}</td><td class="lb-big ${x.thru?(x.tp<0?"c-under":x.tp>0?"c-over":""):""}">${x.thru?fmtTo(x.tp):"–"}</td><td>${x.thru?(x.thru===c.par.length?"F":x.last):"–"}</td><td>${x.thru?x.gross:"–"}</td></tr>`;}).join("");
     const ago=t=>{const m=Math.round((Date.now()-t)/60000);return m<1?"recién":`hace ${m} min`;};
     $("lvGroups").innerHTML=r.grupos.map(g=>{const js=(g.data&&g.data.jugadores)||[];const h=Math.max(0,...js.map(j=>(j.g||[]).reduce((a,s,i)=>s?i+1:a,0)));
       return `<span class="chip">${esc(g.grupo)} · ${h?(h===c.par.length?"terminó":"hoyo "+h):"sin empezar"} · ${ago(g.t)}</span>`;}).join(" ");
