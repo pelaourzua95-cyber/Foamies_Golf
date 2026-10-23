@@ -12,7 +12,14 @@ const HOJAS = {
   Grupos: ['jornada', 'grupo', 'hora', 'data', 'actualizado'],
 };
 
+/** Ejecuta esta función una vez desde el editor (botón Ejecutar): crea las pestañas y pide los permisos. */
+function configurar() {
+  Object.keys(HOJAS).forEach(hoja);
+  Logger.log('Listo: pestañas Jugadores, Jornadas y Grupos creadas.');
+}
+
 function hoja(nombre) {
+  if (!HOJAS[nombre]) throw new Error('Pestaña desconocida: ' + nombre);
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let s = ss.getSheetByName(nombre);
   if (!s) {
