@@ -319,6 +319,7 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
     </div>
   </header>
   <div class="note" id="note" hidden></div>
+  <div id="nplBox"></div>
   <section class="card livebox" id="livebox"></section>
   <section class="players card" id="players"></section>
   <button type="button" class="btn primary hx-open open-hx">Anotar hoyo a hoyo</button>
@@ -595,10 +596,11 @@ function renderIndSummary(){const c=cur();const sc=scores();const N=st.names;
     return `<tr><td>${r.thru?pos:"–"}</td><td class="lb-name">${esc(N[r.p])}</td><td class="lb-gross">${r.thru?fmtTo(r.gtp):"–"}</td><td class="${r.thru?(r.tp<0?"c-under":r.tp>0?"c-over":""):""} lb-big">${r.thru?fmtTo(r.tp):"–"}</td><td>${r.thru||"–"}</td><td>${r.thru?r.gross:"–"}</td><td>${r.won}</td></tr>`;}).join("");
   $("summary").className="colsum";
   $("summary").innerHTML=`<div class="rules"><b>Individual, en neto:</b> cada uno juega por su cuenta. Gana el hoyo el mejor neto; si dos o más empatan, el hoyo no lo gana nadie. La tabla ordena por resultado neto contra el par. Gross es el resultado sin hándicap.</div>
-  <div class="npl"><span>Jugadores</span><div class="npl-btns" role="radiogroup" aria-label="Cantidad de jugadores">${[1,2,3,4].map(k=>`<button type="button" class="npl-b${st.nInd===k?" on":""}" data-n="${k}" role="radio" aria-checked="${st.nInd===k}">${k}</button>`).join("")}</div></div>
   <div class="stand"><h3>Tabla de posiciones</h3><div class="scroll"><table class="lb"><colgroup><col style="width:30px"><col><col style="width:46px"><col style="width:48px"><col style="width:40px"><col style="width:42px"><col style="width:40px"></colgroup>
   <tr><th>Pos</th><th>Jugador</th><th>Gross</th><th>Neto</th><th>Hoyo</th><th>Tot</th><th>Gan.</th></tr>${body}</table></div></div>`;}
-function renderPlayers(){const c=cur();const PH=playHcp();const tees=Object.keys(c.tees);const A=act();
+function renderNpl(){const b=$("nplBox");if(!b)return;if(st.mode!=="ind"){b.innerHTML="";b.hidden=true;return;}b.hidden=false;
+  b.innerHTML=`<div class="npl"><span>Jugadores</span><div class="npl-btns" role="radiogroup" aria-label="Cantidad de jugadores">${[1,2,3,4].map(k=>`<button type="button" class="npl-b${st.nInd===k?" on":""}" data-n="${k}" role="radio" aria-checked="${st.nInd===k}">${k}</button>`).join("")}</div></div>`;}
+function renderPlayers(){renderNpl();const c=cur();const PH=playHcp();const tees=Object.keys(c.tees);const A=act();
   const tag=p=>st.mode==="2v2"?`<span class="ptag ${p<2?"wA":"wB"}">${p<2?"A":"B"}</span>`:`<span class="ptag">J${p+1}</span>`;
   let h=`<h2>Jugadores <span>Índice y salida</span></h2><div class="pl-grid"><div class="pl-h"></div><div class="pl-h">Nombre</div><div class="pl-h">Índice</div><div class="pl-h">Salida</div><div class="pl-h c">HDC</div>`;
   A.forEach(p=>{const ix=st.hcp[p];const ch=courseHcp(p);const rs=ratingOf(p);const tv=teeOf(p);
