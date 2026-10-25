@@ -159,6 +159,28 @@ body.noscroll{overflow:hidden}
 .hx-nav .btn{padding:15px;font-size:16px}
 .hx-back{background:var(--warn-bg);color:var(--warn-ink);border-color:transparent}
 .players{padding-bottom:12px}
+.pl-h2{align-items:center}
+.players .pl-npl{border:0;border-bottom:1px solid var(--line);border-radius:0;padding:10px 12px}
+.players .pl-npl>span{font-size:11px;color:var(--muted)}
+.allow-l{display:flex;align-items:center;gap:6px;font:600 11px var(--f-num);letter-spacing:.12em;color:var(--muted)}
+#allow{font:600 14px var(--f-num);padding:5px 6px;border-radius:6px;border:1px solid var(--line);background:var(--row);color:var(--ink);letter-spacing:0}
+.pl-mini{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 12px 0}
+.pl-chip{display:flex;align-items:baseline;gap:5px;background:var(--row);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font:600 13px var(--f-num);letter-spacing:.04em;text-transform:uppercase}
+.pl-chip b{color:var(--accent);font-size:14px}
+.pl-mini .btn{margin-left:auto;padding:6px 12px}
+.pl-done{display:flex;justify-content:flex-end;padding:10px 12px 0}
+.ajustes{padding:0}
+.ajustes>summary{cursor:pointer;list-style:none;padding:12px 14px;font:700 15px var(--f-num);letter-spacing:.14em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+.ajustes>summary::-webkit-details-marker{display:none}
+.ajustes>summary::after{content:"+";font-size:20px;color:var(--muted)}
+.ajustes[open]>summary::after{content:"−"}
+.ajustes[open]>summary{border-bottom:1px solid var(--line)}
+.aj-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:12px}
+#rulesBox .rules{margin:0}
+.lv-cta{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px 0}
+.hx-pos{display:block;font:700 12px var(--f-num);letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+.hx-hbtns{display:flex;gap:8px;align-items:center}
+#hxLive{background:#d0102b;border-color:#d0102b;color:#fff}
 .players .src{margin:10px 14px 0}
 .pl-grid{display:grid;grid-template-columns:18px minmax(0,1fr) 50px 74px 40px;gap:8px 6px;align-items:center;padding:10px 12px 0}
 .pl-h{font:600 11px var(--f-num);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
@@ -216,8 +238,10 @@ table.lb .lb-big{font-size:20px;font-weight:700}
 .opt:hover,.opt.on{background:var(--row)}
 .opt small{color:var(--muted);white-space:nowrap}
 .course{padding:0 16px 16px;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 20px}
-.course h1{margin:0;font-family:var(--f-num);font-weight:700;font-size:clamp(26px,5vw,36px);line-height:1.05;text-transform:uppercase;letter-spacing:.01em;text-wrap:balance}
-.course .sub{opacity:.75;font-size:14px;margin-top:2px}
+.course h1{margin:0;font-family:var(--f-num);font-weight:700;font-size:clamp(22px,4.4vw,32px);line-height:1.05;text-transform:uppercase;letter-spacing:.01em;text-wrap:balance}
+.course .sub{opacity:.8;font-size:14px;margin-top:4px}
+.course .facts{display:none}
+.course{padding-bottom:14px}
 .facts{display:flex;gap:18px;font-family:var(--f-num);font-variant-numeric:tabular-nums}
 .facts div{display:flex;flex-direction:column;align-items:flex-end}
 .facts b{font-size:24px;font-weight:600;line-height:1}
@@ -257,7 +281,6 @@ table.sc-wide .n2{box-shadow:inset 1px 0 0 rgba(255,255,255,.25)}
 .hset{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .hset-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
 .hset-row>label:first-child{font-family:var(--f-num);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:13px}
-#allow{font:500 14px var(--f-body);padding:6px 8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 .chk{display:flex;align-items:center;gap:6px;font-size:14px}
 .hset-info{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .chip{background:var(--row);border:1px solid var(--line);border-radius:999px;padding:2px 9px;color:var(--ink)}
@@ -334,20 +357,18 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
   </header>
   <div class="note" id="note" hidden></div>
   <div id="nplBox"></div>
-  <section class="card livebox" id="livebox"></section>
   <section class="players card" id="players"></section>
+  <section class="card livebox" id="livebox"></section>
   <button type="button" class="btn primary hx-open open-hx">Anotar hoyo a hoyo</button>
-  <section class="hset">
-    <div class="hset-row">
-      <label for="allow">Hándicap de juego</label>
-      <select id="allow"><option value="100">100% del hándicap</option><option value="90">90%</option><option value="85">85% (fourball, recomendado)</option><option value="75">75%</option></select>
-      <label class="chk"><input type="checkbox" id="offlow"> Golpes desde el hándicap más bajo</label>
-    </div>
-    <div class="hset-info" id="hinfo"></div>
-  </section>
-  <section class="summary" id="summary"></section>
   <section class="card"><h2>Tarjeta <span id="h-out"></span></h2><div class="scroll sc-scroll"><table id="t1"></table></div></section>
-  <div class="foot">
+  <section class="summary" id="summary"></section>
+  <div class="save"><button class="btn primary" id="saveRound" type="button">Guardar vuelta</button><span class="src">Crea una imagen de la tarjeta para compartir o guardar en el teléfono.</span></div>
+  <details class="card ajustes" id="ajustes"><summary>Ajustes de la vuelta</summary>
+   <div class="aj-body">
+    <label class="chk"><input type="checkbox" id="offlow"> Golpes desde el hándicap más bajo</label>
+    <div class="hset-info" id="hinfo"></div>
+    <div id="rulesBox"></div>
+    <div class="foot">
     <div class="legend">
       <div><span class="mark s-eagle c-under">3</span>Eagle o mejor</div>
       <div><span class="mark s-birdie c-under">3</span>Birdie</div>
@@ -357,12 +378,13 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
       <div><span class="mark" style="position:relative">4<i class="dots">••</i></span>Golpes de hándicap en el hoyo</div>
     </div>
     <div id="resetBox"><button class="btn" id="reset" type="button">Borrar puntajes</button></div>
-  </div>
-  <div class="save"><button class="btn primary" id="saveRound" type="button">Guardar vuelta</button><span class="src">Crea una imagen de la tarjeta para compartir o guardar en el teléfono.</span></div>
-  <div class="src" id="src"></div>
+    </div>
+    <div class="src" id="src"></div>
+   </div>
+  </details>
   <div id="hx" class="hx" hidden role="dialog" aria-modal="true" aria-labelledby="hxTitle">
     <div class="hx-top">
-      <div class="hx-head"><div><h2 id="hxTitle">Hoyo 1</h2><div class="hx-meta" id="hxMeta"></div></div><button type="button" class="btn" id="hxClose">Tarjeta</button></div>
+      <div class="hx-head"><div><h2 id="hxTitle">Hoyo 1</h2><div class="hx-meta" id="hxMeta"></div></div><div class="hx-hbtns"><button type="button" class="btn" id="hxLive" hidden>En vivo</button><button type="button" class="btn" id="hxClose">Tarjeta</button></div></div>
       <div class="hx-strip" id="hxStrip"></div>
     </div>
     <div class="hx-body" id="hxBody">
@@ -419,8 +441,8 @@ function sum(a){return a.reduce((x,y)=>x+(y||0),0);}
 function renderHeader(){const c=cur();
   $("q").value=c.label;
   $("cname").textContent=c.club;
-  $("csub").textContent=c.rec+" · "+c.comuna+" · "+REG[c.region];
   const par=sum(c.par);
+  $("csub").textContent=[c.rec,"Par "+par,...Object.entries(c.tees).map(([t,v])=>v.some(x=>x==null)?t:`${t} ${sum(v).toLocaleString("es-CL")} yd`)].join(" · ");
   let f=`<div><b>${par}</b><span>Par</span></div>`;
   for(const [t,v] of Object.entries(c.tees)){const y=v.some(x=>x==null)?"—":sum(v).toLocaleString("es-CL");f+=`<div><b>${y}</b><span>${t} · yd</span></div>`;}
   $("facts").innerHTML=f;
@@ -603,23 +625,31 @@ function renderIndSummary(){const c=cur();const sc=scores();const N=st.names;
   $("summary").innerHTML=`<div class="rules"><b>Individual, en neto:</b> cada uno juega por su cuenta. Gana el hoyo el mejor neto; si dos o más empatan, el hoyo no lo gana nadie. La tabla ordena por resultado neto contra el par. Gross es el resultado sin hándicap.</div>
   <div class="stand"><h3>Tabla de posiciones</h3><div class="scroll"><table class="lb"><colgroup><col style="width:30px"><col><col style="width:46px"><col style="width:48px"><col style="width:40px"><col style="width:42px"><col style="width:40px"></colgroup>
   <tr><th>Pos</th><th>Jugador</th><th>Gross</th><th>Neto</th><th>Hoyo</th><th>Tot</th><th>Gan.</th></tr>${body}</table></div></div>`;}
-function renderNpl(){const b=$("nplBox");if(!b)return;if(st.mode!=="ind"){b.innerHTML="";b.hidden=true;return;}b.hidden=false;
-  b.innerHTML=`<div class="npl"><span>Jugadores</span><div class="npl-btns" role="radiogroup" aria-label="Cantidad de jugadores">${[1,2,3,4].map(k=>`<button type="button" class="npl-b${st.nInd===k?" on":""}" data-n="${k}" role="radio" aria-checked="${st.nInd===k}">${k}</button>`).join("")}</div></div>`;}
+function renderNpl(){const b=$("nplBox");if(b){b.innerHTML="";b.hidden=true;}}
+function nplHtml(){if(st.mode!=="ind")return "";
+  return `<div class="npl pl-npl"><span>Cantidad</span><div class="npl-btns" role="radiogroup" aria-label="Cantidad de jugadores">${[1,2,3,4].map(k=>`<button type="button" class="npl-b${st.nInd===k?" on":""}" data-n="${k}" role="radio" aria-checked="${st.nInd===k}">${k}</button>`).join("")}</div></div>`;}
+let plEdit=false;
+document.addEventListener("click",e=>{if(e.target.id==="plEdit"){plEdit=true;renderPlayers();}else if(e.target.id==="plDone"){plEdit=false;renderPlayers();}});
 function renderPlayers(){renderNpl();const c=cur();const PH=playHcp();const tees=Object.keys(c.tees);const A=act();
   const tag=p=>st.mode==="2v2"?`<span class="ptag ${p<2?"wA":"wB"}">${p<2?"A":"B"}</span>`:`<span class="ptag">J${p+1}</span>`;
-  let h=`<h2>Jugadores <span>Índice y salida</span></h2><div class="pl-grid"><div class="pl-h"></div><div class="pl-h">Nombre</div><div class="pl-h">Índice</div><div class="pl-h">Salida</div><div class="pl-h c">HDC</div>`;
+  const started=A.some(p=>scores()[p].some(Boolean));
+  let h=`<h2 class="pl-h2"><div>Jugadores</div><label class="allow-l" for="allow">% HDC <select id="allow">${[100,90,85,75].map(v=>`<option value="${v}"${st.allow===v?" selected":""}>${v}%</option>`).join("")}</select></label></h2>`+nplHtml();
+  if(started&&!plEdit){h+=`<div class="pl-mini">${A.map(p=>`<span class="pl-chip">${esc(short(st.names[p]))}<b>${st.hcp[p]==null?"–":fmtH(courseHcp(p))}</b></span>`).join("")}<button type="button" class="btn" id="plEdit">Editar</button></div>`;$("players").innerHTML=h;return;}
+  h+=`<div class="pl-grid"><div class="pl-h"></div><div class="pl-h">Nombre</div><div class="pl-h">Índice</div><div class="pl-h">Salida</div><div class="pl-h c">HDC</div>`;
   A.forEach(p=>{const ix=st.hcp[p];const ch=courseHcp(p);const rs=ratingOf(p);const tv=teeOf(p);
     h+=`${tag(p)}<input class="pname" id="pn${p}" data-p="${p}" value="${esc(st.names[p])}" aria-label="Nombre jugador ${p+1}" autocomplete="off">
     <input class="pidx" id="pi${p}" data-p="${p}" inputmode="decimal" maxlength="5" value="${ix==null?"":(ix<0?"+"+(-ix):String(ix).replace(".",","))}" placeholder="0,0" aria-label="Índice de ${esc(st.names[p])}">
     <select class="ptee" id="pt${p}" data-p="${p}" aria-label="Salida de ${esc(st.names[p])}">${tees.map(k=>`<option${k===tv?" selected":""}>${k}</option>`).join("")}</select>
     <div class="pl-hdc" title="${rs?`Rating ${String(rs[0]).replace(".",",")} · Slope ${rs[1]}`:"Sin slope oficial"}"><b>${ix==null?"–":fmtH(ch)}</b><small>${ix==null?"":`juega ${fmtH(PH[p])}`}</small></div>`;});
-  h+=`</div><p class="src">${c.rs?"HDC = Índice × Slope/113 + Rating − Par, con el rating y slope oficiales de la Federación para la salida elegida.":"Esta cancha no tiene slope oficial: el HDC es el índice redondeado"+(c.par.length===9?" a la mitad, por ser de 9 hoyos.":".")} “Juega” es el HDC con el porcentaje elegido abajo.</p>`;
+  h+=`</div><p class="src">${c.rs?"HDC = Índice × Slope/113 + Rating − Par, con el rating y slope oficiales de la Federación para la salida elegida.":"Esta cancha no tiene slope oficial: el HDC es el índice redondeado"+(c.par.length===9?" a la mitad, por ser de 9 hoyos.":".")} “Juega” es el HDC con el porcentaje elegido.</p>${started?`<div class="pl-done"><button type="button" class="btn primary" id="plDone">Listo</button></div>`:""}`;
   $("players").innerHTML=h;}
 function render(){const c=cur();const n=c.par.length;
   renderPlayers();
   renderHeader();
   renderTable("t1");$("h-out").textContent=n===18?"Desliza →":"";
   renderSummary();
+  {const r=$("summary").querySelector(".rules");const rb=$("rulesBox");rb.innerHTML="";
+   if(r)rb.appendChild(r);else rb.innerHTML=`<div class="rules"><b>2v2, en neto:</b> en cada hoyo cuenta la mejor bola neta de cada pareja. El resultado suma esas mejores bolas contra el par.</div>`;}
   $("mode").value=st.mode;
   $("allow").value=String(st.allow);$("offlow").checked=!!st.offLow;
   const PH=playHcp();
@@ -810,15 +840,26 @@ function hxStatus(i){const c=cur();const N=st.names;
     return {t:`${hole} · ${run}`,c:x.run>0?"wA":x.run<0?"wB":"wT"};}
   const a=bestNet([0,1],i),b=bestNet([2,3],i);
   return {t:`Mejor neto: Pareja A ${a} · Pareja B ${b}${a<b?" · gana A":b<a?" · gana B":" · empate"}`,c:a<b?"wA":b<a?"wB":"wT"};}
+function standLine(p){const c=cur();const sc=scores();const N=st.names;
+  if(st.mode==="ind"){const rows=act().map(q=>{let th=0,net=0,par=0;c.par.forEach((pp,i)=>{if(!sc[q][i])return;th++;net+=netOf(q,i);par+=pp;});return {q,th,tp:net-par};});
+    const me=rows.find(r=>r.q===p);if(!me.th)return null;const pos=1+rows.filter(r=>r.th&&r.tp<me.tp).length;const tie=rows.filter(r=>r.th&&r.tp===me.tp).length>1;
+    return {t:`${tie?"T":""}${pos}° · ${fmtTo(me.tp)} neto`,c:me.tp<0?"c-under":me.tp>0?"c-over":""};}
+  if(isCol()){const R=colRun();const Lg=segLen();let b=0,any=false;
+    PAIRINGS.forEach((pr,s)=>{let d=0;for(let i=s*Lg;i<(s+1)*Lg;i++){if(R[i].d==null)continue;any=true;d+=R[i].d;}if(pr[0].includes(p))b+=d;else b-=d;});
+    if(!any)return null;return {t:`Balance ${b>0?"+"+b:b<0?"−"+(-b):"0"}`,c:b>0?"c-under":b<0?"c-over":""};}
+  const ps=p<2?[0,1]:[2,3];let pl=0,s=0,pr=0;c.par.forEach((pp,i)=>{const m=bestNet(ps,i);if(m!=null){pl++;s+=m;pr+=pp;}});
+  if(!pl)return null;const o=p<2?[2,3]:[0,1];let s2=0,pr2=0,pl2=0;c.par.forEach((pp,i)=>{const m=bestNet(o,i);if(m!=null){pl2++;s2+=m;pr2+=pp;}});
+  const d=(s-pr)-(pl2?(s2-pr2):0);
+  return {t:`Pareja ${p<2?"A":"B"} ${fmtTo(s-pr)}${pl2?(d<0?` · gana por ${-d}`:d>0?` · pierde por ${d}`:" · empatados"):""}`,c:s-pr<0?"c-under":s-pr>0?"c-over":""};}
 function renderHx(){const c=cur();const n=c.par.length;const i=hxI;const PH=playHcp();const fp=firstPending();
   $("hxTitle").textContent=`Hoyo ${i+1}`;
   $("hxMeta").textContent=[`Par ${c.par[i]}`,c.si?`Hcp ${c.si[i]}`:null,...Object.entries(c.tees).map(([t,v])=>v[i]==null?null:`${t} ${v[i]} yd`)].filter(Boolean).join(" · ");
   $("hxStrip").innerHTML=c.par.map((_,k)=>`<button type="button" class="hx-n${k===i?" on":""}${holeDone(k)?" done":""}" data-h="${k}" aria-label="Hoyo ${k+1}">${k+1}</button>`).join("");
   const on=$("hxStrip").querySelector(".on");if(on)on.scrollIntoView({block:"nearest",inline:"center"});
-  $("hxEdit").hidden=!hxWasDone;
+  $("hxEdit").hidden=!hxWasDone;$("hxLive").hidden=!st.live;
   $("hxRows").innerHTML=act().map(p=>{const s=scores()[p][i];const v=s||c.par[i];const k=strokesOn(PH[p],i);
     const [sh,co]=s?cls(s,c.par[i]):["",""];const net=s?s-k:null;
-    return `<div class="hx-row"><div class="hx-who"><b>${esc(st.names[p])}</b><small>${k>0?`Recibe ${k} golpe${k>1?"s":""} <i class="hx-dots">${"•".repeat(Math.min(k,3))}</i>`:k<0?`Da ${-k} golpe`:"Sin golpe en este hoyo"}${net!=null?` · Neto ${net}`:""}</small></div>
+    return `<div class="hx-row"><div class="hx-who"><b>${esc(st.names[p])}</b><small>${k>0?`Recibe ${k} golpe${k>1?"s":""} <i class="hx-dots">${"•".repeat(Math.min(k,3))}</i>`:k<0?`Da ${-k} golpe`:"Sin golpe en este hoyo"}${net!=null?` · Neto ${net}`:""}</small>${(()=>{const L=standLine(p);return L?`<small class="hx-pos ${L.c}">${L.t}</small>`:"";})()}</div>
       <div class="hx-ctrl"><button type="button" class="hx-b" data-p="${p}" data-d="-1" aria-label="Restar golpe a ${esc(st.names[p])}">−</button>
       <button type="button" class="hx-v mark ${sh} ${co}${s?"":" unset"}" data-p="${p}" data-set="${v}" aria-label="${s?`${v} golpes`:"Confirmar par"}">${v}</button>
       <button type="button" class="hx-b" data-p="${p}" data-d="1" aria-label="Sumar golpe a ${esc(st.names[p])}">+</button></div></div>`;}).join("");
@@ -834,6 +875,7 @@ $("hx").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)re
   if(b.id==="hxPrev"&&i>0){goHx(i-1);return;}
   if(b.id==="hxNext"){if(i<c.par.length-1){goHx(i+1);}else{closeHx();$("summary").scrollIntoView({behavior:"smooth"});}return;}
   if(b.id==="hxBack"){goHx(firstPending());return;}
+  if(b.id==="hxLive"){openLive();return;}
   if(b.id==="hxClose"){closeHx();return;}});
 let hxX=null;
 $("hxBody").addEventListener("touchstart",e=>{hxX=e.touches[0].clientX;},{passive:true});
@@ -885,11 +927,14 @@ pick=function(id){if(st.live&&id!==st.course){closeList();q.blur();q.value=cur()
 const _setScore=setScore;
 setScore=function(p,i,v){_setScore(p,i,v);pushGroup();};
 
+let lvForm=false;
+document.addEventListener("click",e=>{if(e.target.id==="lvShow"){lvForm=true;renderLiveBox();}});
 function renderLiveBox(){const b=$("livebox");if(!b)return;
   if(st.live){b.innerHTML=`<h2>Jornada en vivo <span id="syncDot" class="sync"></span></h2>
     <div class="lv-on"><div><b>${esc(st.live.nombre||"Jornada")}</b><div class="src">Código <b class="code">${esc(st.live.id)}</b> · Grupo ${esc(st.live.grupo)} · ${esc(st.live.cancha||"")}</div></div>
     <div class="lv-btns"><button type="button" class="btn primary" id="lvOpen">Ver en vivo</button><button type="button" class="btn" id="lvLeave">Salir</button></div></div>
-    <p class="src" id="lvMsg">Comparte el código con las otras salidas. Cada grupo anota en su teléfono y todos ven la tabla general.</p>`;}
+    <p class="src" id="lvMsg"></p>`;}
+  else if(!lvForm){b.innerHTML=`<h2>Jornada en vivo <span id="syncDot" class="sync"></span></h2><div class="lv-cta"><span class="src" style="margin:0">Varias salidas, una tabla común.</span><button type="button" class="btn" id="lvShow">Crear o unirse</button></div><p class="src" id="lvMsg"></p>`;}
   else{b.innerHTML=`<h2>Jornada en vivo <span id="syncDot" class="sync"></span></h2>
     <div class="lv-form">
       <label for="lvGrupo">Nombre de tu grupo</label><input id="lvGrupo" placeholder="Salida 10:00" value="${esc(st.lastGrupo||"")}" autocomplete="off">
@@ -994,8 +1039,8 @@ document.addEventListener("click",async e=>{const b=e.target.closest("#lvSave");
   finally{b.disabled=false;b.textContent="Guardar jornada";}});
 // Tabla general
 let liveTimer=null;
-function openLive(){if(!st.lvTabV2){st.lvTab="tarjeta";st.lvTabV2=true;}const k=st.lvTab||"tarjeta";document.querySelectorAll(".lv-tab").forEach(x=>{const on=x.dataset.tab===k;x.classList.toggle("on",on);x.setAttribute("aria-selected",on);});$("lvTabTabla").hidden=k!=="tabla";$("lvTabTarjeta").hidden=k!=="tarjeta";$("live").hidden=false;document.body.classList.add("noscroll");flush();loadLive();liveTimer=setInterval(loadLive,15000);}
-function closeLive(){$("live").hidden=true;document.body.classList.remove("noscroll");clearInterval(liveTimer);}
+function openLive(){$("lvClose").textContent=$("hx").hidden?"Tarjeta":`Volver al hoyo ${hxI+1}`;if(!st.lvTabV2){st.lvTab="tarjeta";st.lvTabV2=true;}const k=st.lvTab||"tarjeta";document.querySelectorAll(".lv-tab").forEach(x=>{const on=x.dataset.tab===k;x.classList.toggle("on",on);x.setAttribute("aria-selected",on);});$("lvTabTabla").hidden=k!=="tabla";$("lvTabTarjeta").hidden=k!=="tarjeta";$("live").hidden=false;document.body.classList.add("noscroll");flush();loadLive();liveTimer=setInterval(loadLive,15000);}
+function closeLive(){$("live").hidden=true;if($("hx").hidden)document.body.classList.remove("noscroll");else renderHx();clearInterval(liveTimer);}
 function chFor(c,j){const i=j.i==null?0:Number(j.i);const rs=c.rs&&c.rs[j.tee];
   return rs?Math.round(i*rs[1]/113+rs[0]-sum(c.par)):Math.round(c.par.length===9?i/2:i);}
 function strokesFor(c,ph,i){if(!c.si)return 0;const n=c.par.length;const si=c.si[i];
