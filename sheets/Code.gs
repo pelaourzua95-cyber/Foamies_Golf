@@ -5,17 +5,21 @@
  *   Jugadores: nombre | indice | actualizado
  *   Jornadas:  id | nombre | cancha | modo | porcentaje | creada
  *   Grupos:    jornada | grupo | hora | data | actualizado
+ *   Tarjetas:  respaldo de cada vuelta o jornada guardada, una fila por jugador con los 18 hoyos
  */
 const HOJAS = {
   Jugadores: ['nombre', 'indice', 'actualizado'],
   Jornadas: ['id', 'nombre', 'cancha', 'modo', 'porcentaje', 'creada'],
   Grupos: ['jornada', 'grupo', 'hora', 'data', 'actualizado'],
+  Tarjetas: ['guardada', 'clave', 'origen', 'fecha', 'nombre', 'cancha', 'modalidad', 'porcentaje', 'grupo', 'pos', 'jugador', 'indice', 'hdc', 'juega', 'salida']
+    .concat(Array.from({ length: 18 }, (_, i) => 'h' + (i + 1)))
+    .concat(['out', 'in', 'gross', 'neto', 'neto_par', 'hoyos']),
 };
 
 /** Ejecuta esta función una vez desde el editor (botón Ejecutar): crea las pestañas y pide los permisos. */
 function configurar() {
   Object.keys(HOJAS).forEach(hoja);
-  Logger.log('Listo: pestañas Jugadores, Jornadas y Grupos creadas.');
+  Logger.log('Listo: pestañas Jugadores, Jornadas, Grupos y Tarjetas creadas.');
 }
 
 function hoja(nombre) {
@@ -130,6 +134,26 @@ function atender(p) {
         if (f) s.getRange(f._fila, 1, 1, 5).setValues([[id, grupo, String(p.hora || ''), data, ahora]]);
         else s.appendRow([id, grupo, String(p.hora || ''), data, ahora]);
         return { ok: true, t: ahora.getTime() };
+      }
+
+      // ---------- Respaldo de tarjetas ----------
+      // Reemplaza las filas de la misma clave: guardar de nuevo la misma vuelta o jornada la actualiza, no la duplica.
+      case 'guardarTarjeta': {
+        const s = hoja('Tarjetas');
+        const clave = String(p.clave || '').trim();
+        if (!clave) return { ok: false, error: 'Falta la clave' };
+        const v = s.getDataRange().getValues();
+        for (let r = v.length - 1; r >= 1; r--) if (String(v[r][1]) === clave) s.deleteRow(r + 1);
+        const x = val => (val === null || val === undefined ? '' : val);
+        const ahora = new Date();
+        const rows = (p.filas || []).map(f => {
+          const g = Array.from({ length: 18 }, (_, i) => x(f.g && f.g[i] ? f.g[i] : ''));
+          return [ahora, clave, x(p.origen), x(p.fecha), x(p.nombre), x(p.cancha), x(p.modalidad), x(p.porcentaje),
+            x(f.grupo), x(f.pos), x(f.jugador), x(f.indice), x(f.hdc), x(f.juega), x(f.salida)]
+            .concat(g).concat([x(f.out), x(f.in), x(f.gross), x(f.neto), x(f.netoPar), x(f.hoyos)]);
+        });
+        if (rows.length) s.getRange(s.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+        return { ok: true, filas: rows.length };
       }
       default:
         return { ok: false, error: 'Acción desconocida' };

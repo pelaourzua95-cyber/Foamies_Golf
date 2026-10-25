@@ -200,6 +200,9 @@ body.noscroll{overflow:hidden}
 .npl-b{width:44px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--row);color:var(--ink);font:700 18px var(--f-num);cursor:pointer}
 .npl-b.on{background:var(--band);border-color:var(--band);color:#fff}
 .npl-b:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);max-width:min(92vw,420px);background:var(--band);color:#fff;padding:12px 16px;border-radius:10px;font:500 14px var(--f-body);box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;z-index:200;transition:opacity .2s,transform .2s}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.toast.bad{background:#8a1020}
 .save{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding-top:4px;border-top:1px solid var(--line)}
 .btn.primary{background:var(--band);color:#fff;border-color:var(--band);padding:13px 20px;font-size:15px;text-decoration:none;text-align:center}
 .btn.primary:disabled{opacity:.6}
@@ -810,7 +813,7 @@ async function buildShot(){try{await document.fonts.ready;}catch(e){}
 function sum0(a){return a.reduce((x,y)=>x+(y||0),0);}
 function N0(p){return String(st.names[p]||"Jugador "+(p+1)).toUpperCase();}
 
-async function saveRound(){const btn=$("saveRound");btn.disabled=true;btn.textContent="Generando…";
+async function saveRound(){const btn=$("saveRound");btn.disabled=true;btn.textContent="Generando…";try{backupRound();}catch(e){}
   try{const blob=await buildShot();const c=cur();
     const fname=`vuelta-${c.club.replace(/[^\wáéíóúñ]+/gi,"-").toLowerCase()}-${new Date().toISOString().slice(0,10)}.png`;
     const file=new File([blob],fname,{type:"image/png"});
@@ -913,6 +916,32 @@ async function syncPlayers(){try{const r=await apiGet({action:"jugadores"});if(!
 const _remember=remember;
 remember=function(p){_remember(p);const n=(st.names[p]||"").trim();if(isDefaultName(n))return;
   enqueue({action:"guardarJugador",n,i:st.hcp[p]},"j:"+n.toLowerCase());};
+
+// ---- Respaldo de tarjetas en la planilla ----
+if(!st.dev){st.dev=Math.random().toString(36).slice(2,8).toUpperCase();save();}
+function toast(msg,bad){let el=$("toast");if(!el){el=document.createElement("div");el.id="toast";el.className="toast";el.setAttribute("role","status");document.body.appendChild(el);}
+  el.textContent=msg;el.classList.toggle("bad",!!bad);el.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove("on"),4200);}
+const hoy=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;};
+async function backup(payload){
+  try{const r=await apiPost(payload);
+    if(r&&r.ok){toast("Respaldo guardado en la planilla ✓");return;}
+    if(r&&r.error==="Acción desconocida"){toast("La planilla aún no tiene el respaldo: falta actualizar el Apps Script.",true);return;}
+    throw new Error(r&&r.error);}
+  catch(e){enqueue(payload,"t:"+payload.clave);toast("Sin señal: el respaldo se subirá cuando vuelva la conexión.");}}
+function backupRound(){const c=cur();const sc=scores();const PH=playHcp();const n=c.par.length;
+  const filas=act().map(p=>{const g=sc[p].slice(0,n);const pl=c.par.map((_,i)=>i).filter(i=>g[i]);
+    const net=sum(pl.map(i=>netOf(p,i)));const par=sum(pl.map(i=>c.par[i]));
+    return {jugador:st.names[p],indice:st.hcp[p],hdc:st.hcp[p]==null?null:courseHcp(p),juega:PH[p],salida:teeOf(p),g,
+      out:n===18?sum(g.slice(0,9).filter(Boolean)):null,in:n===18?sum(g.slice(9,18).filter(Boolean)):null,gross:sum(pl.map(i=>g[i])),neto:net,netoPar:net-par,hoyos:pl.length};});
+  if(!filas.some(f=>f.hoyos))return;
+  if(st.mode==="ind"){const o=filas.filter(f=>f.hoyos).sort((a,b)=>a.netoPar-b.netoPar);filas.forEach(f=>{if(f.hoyos)f.pos=1+o.filter(x=>x.netoPar<f.netoPar).length;});}
+  else if(st.mode==="2v2")filas.forEach((f,k)=>f.grupo="Pareja "+(k<2?"A":"B"));
+  backup({action:"guardarTarjeta",origen:"Vuelta",clave:`V-${hoy()}-${c.id}-${st.mode}-${st.dev}`,fecha:hoy(),nombre:c.club,cancha:c.label,modalidad:MODE_NAME[st.mode]||st.mode,porcentaje:st.allow,filas});}
+function backupJornada(){if(!lastLive)return;const {c,rows,j}=lastLive;const n=c.par.length;let pos=0,prev=null;
+  const filas=rows.map((r,k)=>{if(r.tp!==prev){pos=k+1;prev=r.tp;}const g=r.g.slice(0,n);
+    return {grupo:r.grupo,pos:r.thru?pos:null,jugador:r.n,indice:r.ix,hdc:r.ch,juega:r.ph,salida:r.tee,g,
+      out:n===18?sum(g.slice(0,9).filter(Boolean)):null,in:n===18?sum(g.slice(9,18).filter(Boolean)):null,gross:r.gross,neto:r.gross-(r.gtp-r.tp),netoPar:r.tp,hoyos:r.thru};});
+  backup({action:"guardarTarjeta",origen:"Jornada",clave:"J-"+j.id,fecha:hoy(),nombre:j.nombre,cancha:c.label,modalidad:"Individual",porcentaje:j.porcentaje||st.allow,filas});}
 
 // ---- Jornada en vivo ----
 function liveData(){const c=cur();return {cancha:c.label,jugadores:act().map(p=>({n:st.names[p],i:st.hcp[p],tee:teeOf(p),g:scores()[p].slice(0,c.par.length)}))};}
@@ -1033,7 +1062,7 @@ async function shareImage(blob,fname,title){const file=new File([blob],fname,{ty
   const url=URL.createObjectURL(blob);$("shotImg").src=url;$("shotDl").href=url;$("shotDl").download=fname;$("shotMsg").textContent="Mantén presionada la imagen para guardarla o compartirla.";$("shot").hidden=false;}
 document.addEventListener("click",async e=>{const b=e.target.closest("#lvSave");if(!b)return;
   if(!lastLive){$("lvStatus").textContent="Espera a que cargue la jornada.";return;}
-  b.disabled=true;b.textContent="Generando…";
+  b.disabled=true;b.textContent="Generando…";try{backupJornada();}catch(e){}
   try{const blob=await buildLiveShot();await shareImage(blob,`jornada-${lastLive.j.id}-${new Date().toISOString().slice(0,10)}.png`,lastLive.j.nombre);}
   catch(err){$("shotMsg").textContent="No se pudo generar la imagen. Intenta de nuevo.";$("shot").hidden=false;}
   finally{b.disabled=false;b.textContent="Guardar jornada";}});
@@ -1050,7 +1079,7 @@ async function loadLive(){if(!st.live)return;$("lvStatus").textContent="Actualiz
     const c=COURSES.find(x=>x.label===r.jornada.cancha)||cur();const pct=r.jornada.porcentaje||100;const rows=[];
     r.grupos.forEach(g=>{const d=g.data||{};(d.jugadores||[]).forEach(j=>{const ph=Math.round(chFor(c,j)*pct/100);let thru=0,gross=0,net=0,par=0,last=0;
       c.par.forEach((pp,i)=>{const s=j.g&&j.g[i];if(!s)return;thru++;last=Math.max(last,i+1);gross+=s;net+=s-strokesFor(c,ph,i);par+=pp;});
-      rows.push({n:j.n,nh:j.i==null||j.i===""?esc(j.n):`${esc(j.n)} (${fmtH(chFor(c,j))})`,nhRaw:j.i==null||j.i===""?String(j.n):`${j.n} (${fmtH(chFor(c,j))})`,grupo:g.grupo,thru,last,gross,tp:net-par,gtp:gross-par,ph,t:g.t,g:(j.g||[]).slice(0,c.par.length),net:c.par.map((pp,i)=>{const s=j.g&&j.g[i];return s?s-strokesFor(c,ph,i):null;})});});});
+      rows.push({ix:j.i==null||j.i===""?null:Number(j.i),tee:j.tee||"",ch:j.i==null||j.i===""?null:chFor(c,j),n:j.n,nh:j.i==null||j.i===""?esc(j.n):`${esc(j.n)} (${fmtH(chFor(c,j))})`,nhRaw:j.i==null||j.i===""?String(j.n):`${j.n} (${fmtH(chFor(c,j))})`,grupo:g.grupo,thru,last,gross,tp:net-par,gtp:gross-par,ph,t:g.t,g:(j.g||[]).slice(0,c.par.length),net:c.par.map((pp,i)=>{const s=j.g&&j.g[i];return s?s-strokesFor(c,ph,i):null;})});});});
     rows.sort((a,b)=>(b.thru>0)-(a.thru>0)||a.tp-b.tp||b.thru-a.thru);
     let pos=0,prev=null;
     lastLive={c,rows,j:r.jornada};renderLiveCard(c,rows);
