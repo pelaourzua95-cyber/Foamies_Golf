@@ -817,7 +817,7 @@ async function saveRound(){const btn=$("saveRound");btn.disabled=true;btn.textCo
   try{const blob=await buildShot();const c=cur();
     const fname=`vuelta-${c.club.replace(/[^\wáéíóúñ]+/gi,"-").toLowerCase()}-${new Date().toISOString().slice(0,10)}.png`;
     const file=new File([blob],fname,{type:"image/png"});
-    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:"Vuelta de golf"});return;}catch(e){if(e&&e.name==="AbortError")return;}}
+    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file]});return;}catch(e){if(e&&e.name==="AbortError")return;}}
     const url=URL.createObjectURL(blob);$("shotImg").src=url;$("shotDl").href=url;$("shotDl").download=fname;$("shot").hidden=false;
   }catch(e){$("shotMsg").textContent="No se pudo generar la imagen. Intenta de nuevo.";$("shot").hidden=false;}
   finally{btn.disabled=false;btn.textContent="Guardar vuelta";}}
@@ -1058,7 +1058,7 @@ async function buildLiveShot(){try{await document.fonts.ready;}catch(e){}
   g.fillText(`Ordenado por neto. Círculo: birdie · cuadrado: bogey · puntos dorados: golpes de hándicap. Código de jornada ${j.id}.`,P,y+40);
   return new Promise(r=>cv.toBlob(b=>r(b),"image/png"));}
 async function shareImage(blob,fname,title){const file=new File([blob],fname,{type:"image/png"});
-  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title});return;}catch(e){if(e&&e.name==="AbortError")return;}}
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file]});return;}catch(e){if(e&&e.name==="AbortError")return;}}
   const url=URL.createObjectURL(blob);$("shotImg").src=url;$("shotDl").href=url;$("shotDl").download=fname;$("shotMsg").textContent="Mantén presionada la imagen para guardarla o compartirla.";$("shot").hidden=false;}
 document.addEventListener("click",async e=>{const b=e.target.closest("#lvSave");if(!b)return;
   if(!lastLive){$("lvStatus").textContent="Espera a que cargue la jornada.";return;}
