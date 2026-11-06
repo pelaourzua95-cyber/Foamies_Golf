@@ -268,6 +268,7 @@ table.sc-wide tr.tee td:first-child{display:table-cell;vertical-align:middle}
 table.sc-wide tr.tee td:first-child .sw{display:inline-block;vertical-align:-1px;margin-right:6px}
 table.sc-wide td.segstart,table.sc-wide th.segstart{border-left:0;box-shadow:inset 2px 0 0 var(--accent)}
 table.sc-wide tr.pairhead td:first-child{position:static;box-shadow:none;background:transparent}
+table.sc-wide td.netc{font-size:16px;font-weight:800}
 table.sc-wide th.sum{background:var(--band);font-weight:700}
 table.sc-wide .n2{box-shadow:inset 1px 0 0 rgba(255,255,255,.25)}
 .hhead{display:flex;justify-content:space-between;align-items:center;padding-right:4px}
@@ -473,6 +474,8 @@ function playHcp(){const c=cur();const n=c.par.length;
 function strokesOn(ph,i){const c=cur();if(!c.si)return 0;const n=c.par.length;const si=c.si[i];
   if(ph>=0)return Math.floor(ph/n)+(si<=ph%n?1:0);
   const a=-ph;return -(Math.floor(a/n)+(si>n-(a%n)?1:0));}
+function playHcpFull(){return [0,1,2,3].map(p=>Math.round(courseHcp(p)*st.allow/100));}
+function netFull(p,i){const s=scores()[p][i];if(!s)return null;return s-strokesOn(playHcpFull()[p],i);}
 function netOf(p,i){const s=scores()[p][i];if(!s)return null;return s-strokesOn(playHcp()[p],i);}
 function dots(k){if(!k)return"";if(k<0)return `<i class="dots plus">+${-k}</i>`;return `<i class="dots">${"•".repeat(Math.min(k,3))}</i>`;}
 function bestNet(ps,i){const a=netOf(ps[0],i),b=netOf(ps[1],i);return a!=null&&b!=null?Math.min(a,b):(a!=null?a:b);}
@@ -542,26 +545,27 @@ function renderTable(tid){const c=cur();const sc=scores();const n=c.par.length;c
   const R9=n===18?[[0,9,"Out"],[9,18,"In"]]:[[0,n,"Tot"]];const withTot=n===18;
   const ids=(a,b)=>{const o=[];for(let i=a;i<b;i++)o.push(i);return o;};const ALL=ids(0,n);
   // celdas: por hoyo fh(i), por tramo fs(ids,lab), total ft()
-  const row=(fh,fs,ft)=>R9.map(([a,b,l])=>ids(a,b).map(fh).join("")+fs(ids(a,b),l)).join("")+(withTot?ft():"");
+  const row=(fh,fs,ft,fn)=>R9.map(([a,b,l])=>ids(a,b).map(fh).join("")+fs(ids(a,b),l)).join("")+(withTot?ft():"")+(fn?fn():"<td class=\"sum netc\"></td>");
   const empty=()=>"<td class=\"sum\"></td>";
-  let h=`<colgroup><col class="lab">${R9.map(([a,b])=>ids(a,b).map(()=>"<col class=\"hl\">").join("")+'<col class="tot">').join("")}${withTot?'<col class="tot">':""}</colgroup>`;
-  h+=`<tr class="hole"><th><div class="hhead"><span>Hoyo</span><span class="hdc" title="Hándicap de cada jugador">HDC</span></div></th>${row(i=>`<th class="${i===9?"n2":""}">${i+1}</th>`,(x,l)=>`<th class="sum">${l}</th>`,()=>`<th class="sum">Tot</th>`)}</tr>`;
+  let h=`<colgroup><col class="lab">${R9.map(([a,b])=>ids(a,b).map(()=>"<col class=\"hl\">").join("")+'<col class="tot">').join("")}${withTot?'<col class="tot">':""}<col class="tot"></colgroup>`;
+  h+=`<tr class="hole"><th><div class="hhead"><span>Hoyo</span><span class="hdc" title="Hándicap de cada jugador">HDC</span></div></th>${row(i=>`<th class="${i===9?"n2":""}">${i+1}</th>`,(x,l)=>`<th class="sum">${l}</th>`,()=>`<th class="sum">Tot</th>`,()=>`<th class="sum netc">Neto</th>`)}</tr>`;
   for(const [tn,v] of Object.entries(c.tees)){
     const sm=x=>x.some(i=>v[i]==null)?"—":sum(x.map(i=>v[i]));
     h+=`<tr class="tee"><td>${teeSw(tn)}${tn}</td>${row(i=>`<td>${v[i]==null?"—":v[i]}</td>`,x=>`<td class="sum">${sm(x)}</td>`,()=>`<td class="sum">${sm(ALL)}</td>`)}</tr>`;}
   h+=`<tr class="hcp"><td>Hcp</td>${row(i=>`<td>${c.si?c.si[i]:"—"}</td>`,empty,empty)}</tr>`;
   h+=`<tr class="par"><td>Par</td>${row(i=>`<td>${c.par[i]}</td>`,x=>`<td class="sum">${sum(x.map(i=>c.par[i]))}</td>`,()=>`<td class="sum">${sum(c.par)}</td>`)}</tr>`;
-  const span=1+n+R9.length+(withTot?1:0);
+  const span=2+n+R9.length+(withTot?1:0);
   const segC=i=>(isCol()?(segOf(i)%2?" seg1":"")+(segStart(i)&&i!==0?" segstart":""):"");
   const totF=(arr,net)=>{const one=x=>{const pl=x.filter(i=>arr[i]!=null&&arr[i]!=="");if(!pl.length)return "";
-      const S=sum(pl.map(i=>arr[i]));const T=sum(pl.map(i=>net[i]))-sum(pl.map(i=>c.par[i]));
-      return S+`<span class="topar ${T<0?"c-under":T>0?"c-over":""}">${fmtTo(T)}</span>`;};
-    return [x=>`<td class="sum">${one(x)}</td>`,()=>`<td class="sum">${one(ALL)}</td>`];};
-  const playerRow=p=>{const ch=courseHcp(p);const [fs,ft]=totF(sc[p],c.par.map((_,i)=>netOf(p,i)));
-    return `<tr class="ply"><td><div class="pwrap"><span class="pn">${esc(st.names[p])}</span><span class="phdc" title="HDC de cancha ${fmtH(ch)} · juega ${fmtH(PH[p])}">${st.hcp[p]==null?"–":fmtH(PH[p])}</span></div></td>`+
+      return sum(pl.map(i=>arr[i]));};
+    const netT=()=>{const pl=ALL.filter(i=>arr[i]!=null&&arr[i]!=="");if(!pl.length)return "";const T=sum(pl.map(i=>net[i]))-sum(pl.map(i=>c.par[i]));
+      return `<span class="${T<0?"c-under":T>0?"c-over":""}">${fmtTo(T)}</span>`;};
+    return [x=>`<td class="sum">${one(x)}</td>`,()=>`<td class="sum">${one(ALL)}</td>`,()=>`<td class="sum netc">${netT()}</td>`];};
+  const playerRow=p=>{const ch=courseHcp(p);const [fs,ft,fn]=totF(sc[p],c.par.map((_,i)=>netFull(p,i)));const PF=playHcpFull();
+    return `<tr class="ply"><td><div class="pwrap"><span class="pn">${esc(st.names[p])}</span><span class="phdc" title="HDC de cancha ${fmtH(ch)} · juega ${fmtH(PF[p])}">${st.hcp[p]==null?"–":fmtH(PF[p])}</span></div></td>`+
       row(i=>{const s=sc[p][i];const [sh,co]=cls(s,c.par[i]);
-        return `<td class="${segC(i)}"><div class="cell mark ${sh} ${co}">${dots(strokesOn(PH[p],i))}<input id="s${p}-${i}" inputmode="numeric" maxlength="2" data-p="${p}" data-i="${i}" value="${s||""}" aria-label="${esc(st.names[p])} hoyo ${i+1}"></div></td>`;},fs,ft)+"</tr>";};
-  const bestRow=(lab,arr,cl)=>{const [fs,ft]=totF(arr,arr);return `<tr class="${cl}"><td>${lab}</td>${row(i=>{const s=arr[i];const [sh,co]=cls(s,c.par[i]);return `<td class="${segC(i)}"><span class="mark ${sh} ${co}" style="margin:0 auto">${s==null?"":s}</span></td>`;},fs,ft)}</tr>`;};
+        return `<td class="${segC(i)}"><div class="cell mark ${sh} ${co}">${dots(strokesOn(PH[p],i))}<input id="s${p}-${i}" inputmode="numeric" maxlength="2" data-p="${p}" data-i="${i}" value="${s||""}" aria-label="${esc(st.names[p])} hoyo ${i+1}"></div></td>`;},fs,ft,fn)+"</tr>";};
+  const bestRow=(lab,arr,cl)=>{const [fs,ft,fn]=totF(arr,arr);return `<tr class="${cl}"><td>${lab}</td>${row(i=>{const s=arr[i];const [sh,co]=cls(s,c.par[i]);return `<td class="${segC(i)}"><span class="mark ${sh} ${co}" style="margin:0 auto">${s==null?"":s}</span></td>`;},fs,ft,fn)}</tr>`;};
   if(st.mode==="ind"){
     h+=`<tr class="pairhead a"><td colspan="${span}"><span class="ph-l">Jugadores</span></td></tr>`;
     act().forEach(p=>{h+=playerRow(p);});
@@ -585,7 +589,7 @@ function renderTable(tid){const c=cur();const sc=scores();const n=c.par.length;c
       if(x.run==null)return `<td class="${segC(i)}">${m}</td>`;
       const cl=x.run>0?"wA":x.run<0?"wB":"wT";return `<td class="${segC(i)} ${cl}">${x.run===0?"=":"+"+Math.abs(x.run)}${m}</td>`;},empty,empty)}</tr>`;
   }
-  const tb=$(tid);tb.className="sc-wide";tb.style.minWidth=(126+n*36+(R9.length+(withTot?1:0))*44)+"px";tb.innerHTML=h;
+  const tb=$(tid);tb.className="sc-wide";tb.style.minWidth=(126+n*36+(R9.length+(withTot?1:0)+1)*44)+"px";tb.innerHTML=h;
 }
 function renderSummary(){const c=cur();const sc=scores();
   if(isCol()){renderColSummary();return;}
@@ -617,7 +621,7 @@ function renderColSummary(){const c=cur();const L=segLen();const N=st.names;cons
   $("summary").className="colsum";$("summary").innerHTML=html;}
 function renderIndSummary(){const c=cur();const sc=scores();const N=st.names;
   const rows=act().map(p=>{let thru=0,gross=0,net=0,par=0,won=0;
-    c.par.forEach((pp,i)=>{const s=sc[p][i];if(!s)return;thru++;gross+=s;net+=netOf(p,i);par+=pp;});
+    c.par.forEach((pp,i)=>{const s=sc[p][i];if(!s)return;thru++;gross+=s;net+=netFull(p,i);par+=pp;});
     c.par.forEach((_,i)=>{if(indWinner(i)===p)won++;});
     return {p,thru,gross,tp:net-par,gtp:gross-par,won};});
   rows.sort((a,b)=>(b.thru>0)-(a.thru>0)||a.tp-b.tp||b.won-a.won);
@@ -637,7 +641,7 @@ function renderPlayers(){renderNpl();const c=cur();const PH=playHcp();const tees
   const tag=p=>st.mode==="2v2"?`<span class="ptag ${p<2?"wA":"wB"}">${p<2?"A":"B"}</span>`:`<span class="ptag">J${p+1}</span>`;
   const started=A.some(p=>scores()[p].some(Boolean));
   let h=`<h2 class="pl-h2"><div>Jugadores</div><label class="allow-l" for="allow">% HDC <select id="allow">${[100,90,85,75].map(v=>`<option value="${v}"${st.allow===v?" selected":""}>${v}%</option>`).join("")}</select></label></h2>`+nplHtml();
-  if(started&&!plEdit){h+=`<div class="pl-mini">${A.map(p=>`<span class="pl-chip">${esc(short(st.names[p]))}<b>${st.hcp[p]==null?"–":fmtH(playHcp()[p])}</b></span>`).join("")}<button type="button" class="btn" id="plEdit">Editar</button></div>`;$("players").innerHTML=h;return;}
+  if(started&&!plEdit){h+=`<div class="pl-mini">${A.map(p=>`<span class="pl-chip">${esc(short(st.names[p]))}<b>${st.hcp[p]==null?"–":fmtH(playHcpFull()[p])}</b></span>`).join("")}<button type="button" class="btn" id="plEdit">Editar</button></div>`;$("players").innerHTML=h;return;}
   h+=`<div class="pl-grid"><div class="pl-h"></div><div class="pl-h">Nombre</div><div class="pl-h">Índice</div><div class="pl-h">Salida</div><div class="pl-h c">HDC</div>`;
   A.forEach(p=>{const ix=st.hcp[p];const ch=courseHcp(p);const rs=ratingOf(p);const tv=teeOf(p);
     h+=`${tag(p)}<input class="pname" id="pn${p}" data-p="${p}" value="${esc(st.names[p])}" aria-label="Nombre jugador ${p+1}" autocomplete="off">
@@ -723,7 +727,7 @@ function shotSummary(){const c=cur();const N=st.names;const L=[];
       const a=`${N[pr[0][0]]} y ${N[pr[0][1]]}`,b=`${N[pr[1][0]]} y ${N[pr[1][1]]}`;
       L.push({t:`Hoyos ${s*Lg+1}–${(s+1)*Lg}: ${a} vs ${b}`,v:!pl?"–":d===0?"=":"+"+Math.abs(d),c:d>0?IMG.band:d<0?IMG.gold:IMG.muted,sub:!pl?"":d===0?"Van iguales":`Gana ${d>0?a:b}`});});
     [0,1,2,3].sort((a,b)=>bal[b]-bal[a]).forEach(p=>L.push({t:N[p],v:bal[p]>0?"+"+bal[p]:bal[p]<0?"−"+(-bal[p]):"0",c:bal[p]>0?IMG.red:bal[p]<0?IMG.blue:IMG.ink,sub:"Balance"}));}
-  else{const rows=act().map(p=>{let th=0,net=0,par=0,won=0;c.par.forEach((pp,i)=>{const s=scores()[p][i];if(!s)return;th++;net+=netOf(p,i);par+=pp;});
+  else{const rows=act().map(p=>{let th=0,net=0,par=0,won=0;c.par.forEach((pp,i)=>{const s=scores()[p][i];if(!s)return;th++;net+=netFull(p,i);par+=pp;});
       c.par.forEach((_,i)=>{if(indWinner(i)===p)won++;});return {p,th,tp:net-par,won};}).sort((a,b)=>(b.th>0)-(a.th>0)||a.tp-b.tp||b.won-a.won);
     rows.forEach((r,k)=>L.push({t:`${k+1}. ${N[r.p]}`,v:r.th?fmtTo(r.tp):"–",c:r.tp<0?IMG.red:r.tp>0?IMG.blue:IMG.ink,sub:`${r.th} hoyos · ${r.won} ${r.won===1?"ganado":"ganados"}`}));}
   return L;}
@@ -787,10 +791,10 @@ async function buildShot(){try{await document.fonts.ready;}catch(e){}
     if(p==="A"||p==="B"){const ps=p==="A"?[0,1]:[2,3];const arr=c.par.map((_,i)=>bestNet(ps,i));
       g.fillStyle=IMG.row;g.fillRect(P,y,W-2*P,RH);label(`MEJOR NETO ${p}`,p==="A"?IMG.band:IMG.gold,`700 22px ${FN}`);
       for(let i=0;i<n;i++)drawMark(g,hx[i],y+RH/2,arr[i],c.par[i]);totals(arr,arr);line();y+=RH;return;}
-    const h=st.hcp[p]==null?null:PH[p];label(`${N0(p)}${h==null?"":" ("+fmtH(h)+")"}`,IMG.ink,`600 24px ${FN}`);
+    const h=st.hcp[p]==null?null:playHcpFull()[p];label(`${N0(p)}${h==null?"":" ("+fmtH(h)+")"}`,IMG.ink,`600 24px ${FN}`);
     for(let i=0;i<n;i++){drawMark(g,hx[i],y+RH/2,sc[p][i],c.par[i]);const s=strokesOn(PH[p],i);
       if(s>0){g.fillStyle=IMG.accent;for(let d=0;d<Math.min(s,3);d++){g.beginPath();g.arc(hx[i]+24-d*8,y+9,3,0,7);g.fill();}}}
-    totals(sc[p],c.par.map((_,i)=>netOf(p,i)));line();y+=RH;});
+    totals(sc[p],c.par.map((_,i)=>netFull(p,i)));line();y+=RH;});
   if(isCol()){g.fillStyle=IMG.row;g.fillRect(P,y,W-2*P,RH);label("VA GANANDO",IMG.ink);
     for(let i=0;i<n;i++){const r=runs[i];if(r.run==null)continue;g.font=`700 24px ${FN}`;g.fillStyle=r.run>0?IMG.band:r.run<0?IMG.gold:IMG.muted;
       g.fillText(r.run===0?"=":"+"+Math.abs(r.run),hx[i],y+RH/2);if(r.mult>1){g.font=`700 14px ${FN}`;g.fillStyle=IMG.accent;g.fillText("x"+r.mult,hx[i]+22,y+12);}}
@@ -844,7 +848,7 @@ function hxStatus(i){const c=cur();const N=st.names;
   const a=bestNet([0,1],i),b=bestNet([2,3],i);
   return {t:`Mejor neto: Pareja A ${a} · Pareja B ${b}${a<b?" · gana A":b<a?" · gana B":" · empate"}`,c:a<b?"wA":b<a?"wB":"wT"};}
 function standLine(p){const c=cur();const sc=scores();const N=st.names;
-  if(st.mode==="ind"){const rows=act().map(q=>{let th=0,net=0,par=0;c.par.forEach((pp,i)=>{if(!sc[q][i])return;th++;net+=netOf(q,i);par+=pp;});return {q,th,tp:net-par};});
+  if(st.mode==="ind"){const rows=act().map(q=>{let th=0,net=0,par=0;c.par.forEach((pp,i)=>{if(!sc[q][i])return;th++;net+=netFull(q,i);par+=pp;});return {q,th,tp:net-par};});
     const me=rows.find(r=>r.q===p);if(!me.th)return null;const pos=1+rows.filter(r=>r.th&&r.tp<me.tp).length;const tie=rows.filter(r=>r.th&&r.tp===me.tp).length>1;
     return {t:`${tie?"T":""}${pos}° · ${fmtTo(me.tp)} neto`,c:me.tp<0?"c-under":me.tp>0?"c-over":""};}
   if(isCol()){const R=colRun();const Lg=segLen();let b=0,any=false;
@@ -930,8 +934,8 @@ async function backup(payload){
   catch(e){enqueue(payload,"t:"+payload.clave);toast("Sin señal: el respaldo se subirá cuando vuelva la conexión.");}}
 function backupRound(){const c=cur();const sc=scores();const PH=playHcp();const n=c.par.length;
   const filas=act().map(p=>{const g=sc[p].slice(0,n);const pl=c.par.map((_,i)=>i).filter(i=>g[i]);
-    const net=sum(pl.map(i=>netOf(p,i)));const par=sum(pl.map(i=>c.par[i]));
-    return {jugador:st.names[p],indice:st.hcp[p],hdc:st.hcp[p]==null?null:courseHcp(p),juega:PH[p],salida:teeOf(p),g,
+    const net=sum(pl.map(i=>netFull(p,i)));const par=sum(pl.map(i=>c.par[i]));
+    return {jugador:st.names[p],indice:st.hcp[p],hdc:st.hcp[p]==null?null:courseHcp(p),juega:playHcpFull()[p],salida:teeOf(p),g,
       out:n===18?sum(g.slice(0,9).filter(Boolean)):null,in:n===18?sum(g.slice(9,18).filter(Boolean)):null,gross:sum(pl.map(i=>g[i])),neto:net,netoPar:net-par,hoyos:pl.length};});
   if(!filas.some(f=>f.hoyos))return;
   if(st.mode==="ind"){const o=filas.filter(f=>f.hoyos).sort((a,b)=>a.netoPar-b.netoPar);filas.forEach(f=>{if(f.hoyos)f.pos=1+o.filter(x=>x.netoPar<f.netoPar).length;});}
