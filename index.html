@@ -385,7 +385,7 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
     <div id="resetBox"><button class="btn" id="reset" type="button">Borrar puntajes</button></div>
     </div>
     <div class="src" id="src"></div>
-    <div class="src" id="appVer">Versión 5-nov 23:00</div>
+    <div class="src" id="appVer">Versión 5-nov 23:30</div>
    </div>
   </details>
   <div id="hx" class="hx" hidden role="dialog" aria-modal="true" aria-labelledby="hxTitle">
@@ -974,7 +974,7 @@ function renderLiveBox(){const b=$("livebox");if(!b)return;
   else{b.innerHTML=`<h2>Jornada en vivo <span id="syncDot" class="sync"></span></h2>
     <div class="lv-form">
       <label for="lvGrupo">Nombre de tu grupo</label><input id="lvGrupo" placeholder="Salida 10:00" value="${esc(st.lastGrupo||"")}" autocomplete="off">
-      <div class="lv-row"><input id="lvCode" placeholder="Código" maxlength="5" autocomplete="off" aria-label="Código de la jornada"><button type="button" class="btn" id="lvJoin">Unirse</button></div>
+      <div class="lv-row"><input id="lvCode" placeholder="FOAMIES o código" maxlength="7" autocomplete="off" aria-label="Código de la jornada"><button type="button" class="btn" id="lvJoin">Unirse</button></div>
       <div class="lv-row"><input id="lvName" placeholder="Nombre de la jornada (opcional)" autocomplete="off" aria-label="Nombre de la jornada"><button type="button" class="btn primary" id="lvCreate">Crear jornada</button></div>
       <p class="src" id="lvMsg">Modalidad individual en neto. Crea la jornada con la cancha elegida arriba y comparte el código; las otras salidas se unen con él.</p></div>`;}
   setSync(syncState);}
@@ -987,19 +987,21 @@ document.addEventListener("click",async e=>{const b=e.target.closest("button");i
     if(!navigator.onLine){lvMsg("Necesitas señal para crear o unirte a una jornada.",true);return;}
     b.disabled=true;lvMsg("Conectando con la planilla…");
     try{if(b.id==="lvCreate"){const c=cur();const nombre=$("lvName").value.trim()||`${c.club} ${new Date().toLocaleDateString("es-CL")}`;
-        const r=await apiPost({action:"crearJornada",nombre,cancha:c.label,modo:"ind",porcentaje:st.allow});if(!r.ok)throw new Error(r.error);
+        const r=await apiPost({action:"crearJornada",nombre,cancha:c.label,modo:"ind",porcentaje:st.allow,forzar:confirmCreate});
+        if(!r.ok&&r.existe){confirmCreate=true;$("lvCode").value="FOAMIES";lvMsg(`Ya hay una jornada hoy: “${r.existe.nombre}”. Para sumarte toca Unirse (con FOAMIES). Si de verdad quieres otra jornada aparte, toca Crear jornada de nuevo.`,true);return;}
+        if(!r.ok)throw new Error(r.error);confirmCreate=false;
         await joinLive(r.id,grupo,{nombre,cancha:c.label});}
-      else{const id=$("lvCode").value.trim().toUpperCase();if(id.length<5){lvMsg("El código tiene 5 letras.",true);return;}
+      else{const id=$("lvCode").value.trim().toUpperCase();if(id.length<5){lvMsg("Escribe FOAMIES o el código de 5 letras.",true);return;}
         const r=await apiGet({action:"jornada",id});if(!r.ok)throw new Error(r.error);
         if(r.grupos.some(g=>g.grupo.toLowerCase()===grupo.toLowerCase())&&!confirmJoin){confirmJoin=true;lvMsg(`Ya hay un grupo llamado “${grupo}”. Si es el tuyo, toca Unirse de nuevo; si no, cambia el nombre.`,true);return;}
-        confirmJoin=false;st.allow=r.jornada.porcentaje||st.allow;await joinLive(id,grupo,r.jornada);}}
-    catch(err){lvMsg("No se pudo conectar: "+(err.message||"revisa la señal")+".",true);}
+        confirmJoin=false;st.allow=r.jornada.porcentaje||st.allow;await joinLive(r.jornada.id||id,grupo,r.jornada);}}
+    catch(err){const m=err.message||"";lvMsg(m.startsWith("Todavía")?"Todavía no se crea la jornada de hoy. Pídele al organizador que la cree y vuelve a intentar.":m.startsWith("No existe")?"No existe una jornada con ese código.":"No se pudo conectar: "+(m||"revisa la señal")+".",true);}
     finally{b.disabled=false;}return;}
   if(b.id==="lvLeave"){if(b.dataset.ok){st.live=null;save();render();}else{b.dataset.ok="1";b.textContent="¿Salir? Toca de nuevo";}return;}
   if(b.id==="lvOpen"){openLive();return;}
   if(b.id==="lvClose"){closeLive();return;}
   if(b.id==="lvRefresh"){loadLive();return;}});
-let confirmJoin=false;
+let confirmJoin=false,confirmCreate=false;
 
 // Tarjeta completa de la jornada (todos los jugadores, hoyo a hoyo)
 function renderLiveCard(c,rows){const n=c.par.length;const nines=n===18?[[0,9,"Out"],[9,18,"In"]]:[[0,n,"Out"]];

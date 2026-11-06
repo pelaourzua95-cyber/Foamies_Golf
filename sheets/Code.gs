@@ -60,6 +60,17 @@ function doPost(e) {
 
 function ms(d) { return d ? new Date(d).getTime() : 0; }
 
+// Clave fija que siempre lleva a la jornada creada hoy
+const ATAJO = 'FOAMIES';
+const ZONA = 'America/Santiago';
+function diaCL(d) { return Utilities.formatDate(d, ZONA, 'yyyy-MM-dd'); }
+function jornadaDeHoy() {
+  const hoy = diaCL(new Date());
+  const r = filas(hoja('Jornadas')).filter(x => x.creada && diaCL(new Date(ms(x.creada))) === hoy)
+    .sort((a, b) => ms(b.creada) - ms(a.creada));
+  return r[0] || null;
+}
+
 function codigo() {
   const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let s = '';
@@ -102,6 +113,11 @@ function atender(p) {
       // ---------- Jornadas ----------
       case 'crearJornada': {
         const s = hoja('Jornadas');
+        // Evita crear dos jornadas el mismo día por error (se puede forzar)
+        if (!p.forzar) {
+          const deHoy = jornadaDeHoy();
+          if (deHoy) return { ok: false, error: 'Ya hay una jornada hoy', existe: { id: String(deHoy.id), nombre: String(deHoy.nombre) } };
+        }
         const ids = filas(s).map(x => String(x.id));
         let id = codigo();
         while (ids.indexOf(id) >= 0) id = codigo();
@@ -113,8 +129,16 @@ function atender(p) {
         return { ok: true, jornadas: r.map(x => ({ id: String(x.id), nombre: String(x.nombre), cancha: String(x.cancha), modo: String(x.modo), porcentaje: Number(x.porcentaje), creada: ms(x.creada) })) };
       }
       case 'jornada': {
-        const id = String(p.id || '').trim().toUpperCase();
-        const j = filas(hoja('Jornadas')).find(x => String(x.id).toUpperCase() === id);
+        let id = String(p.id || '').trim().toUpperCase();
+        let j;
+        if (id === ATAJO) {
+          // FOAMIES = la jornada creada hoy (la más reciente)
+          j = jornadaDeHoy();
+          if (!j) return { ok: false, error: 'Todavía no se crea la jornada de hoy' };
+          id = String(j.id).toUpperCase();
+        } else {
+          j = filas(hoja('Jornadas')).find(x => String(x.id).toUpperCase() === id);
+        }
         if (!j) return { ok: false, error: 'No existe una jornada con ese código' };
         const g = filas(hoja('Grupos')).filter(x => String(x.jornada).toUpperCase() === id).map(x => {
           let data = null;
