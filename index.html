@@ -368,7 +368,7 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
   <div class="save"><button class="btn primary" id="saveRound" type="button">Guardar vuelta</button><span class="src">Crea una imagen de la tarjeta para compartir o guardar en el teléfono.</span></div>
   <details class="card ajustes" id="ajustes"><summary>Ajustes de la vuelta</summary>
    <div class="aj-body">
-    <label class="chk"><input type="checkbox" id="offlow"> Golpes desde el hándicap más bajo <small>(solo para ganar hoyos en 2v2 y Colombiana; el neto total siempre usa el hándicap completo)</small></label>
+    <label class="chk"><input type="checkbox" id="offlow"> Golpes desde el hándicap más bajo</label>
     <div class="hset-info" id="hinfo"></div>
     <div id="rulesBox"></div>
     <div class="foot">
@@ -469,9 +469,7 @@ function courseHcp(p){const c=cur();const ix=st.hcp[p];if(ix==null||ix==="")retu
 function fmtH(v){return v<0?"+"+(-v):String(v);}
 function playHcp(){const c=cur();const n=c.par.length;
   const base=[0,1,2,3].map(p=>Math.round(courseHcp(p)*st.allow/100));
-  if(!st.offLow||st.mode==="ind")return base;const m=Math.min(...act().map(p=>base[p]));return base.map(v=>v-m);}
-function playHcpFull(){return [0,1,2,3].map(p=>Math.round(courseHcp(p)*st.allow/100));}
-function netFull(p,i){const s=scores()[p][i];if(!s)return null;return s-strokesOn(playHcpFull()[p],i);}
+  if(!st.offLow)return base;const m=Math.min(...act().map(p=>base[p]));return base.map(v=>v-m);}
 function strokesOn(ph,i){const c=cur();if(!c.si)return 0;const n=c.par.length;const si=c.si[i];
   if(ph>=0)return Math.floor(ph/n)+(si<=ph%n?1:0);
   const a=-ph;return -(Math.floor(a/n)+(si>n-(a%n)?1:0));}
@@ -559,8 +557,8 @@ function renderTable(tid){const c=cur();const sc=scores();const n=c.par.length;c
       const S=sum(pl.map(i=>arr[i]));const T=sum(pl.map(i=>net[i]))-sum(pl.map(i=>c.par[i]));
       return S+`<span class="topar ${T<0?"c-under":T>0?"c-over":""}">${fmtTo(T)}</span>`;};
     return [x=>`<td class="sum">${one(x)}</td>`,()=>`<td class="sum">${one(ALL)}</td>`];};
-  const playerRow=p=>{const ch=courseHcp(p);const [fs,ft]=totF(sc[p],c.par.map((_,i)=>netFull(p,i)));
-    return `<tr class="ply"><td><div class="pwrap"><span class="pn">${esc(st.names[p])}</span><span class="phdc" title="Hándicap de cancha ${fmtH(ch)} · recibe ${PH[p]} golpes">${st.hcp[p]==null?"–":fmtH(ch)}</span></div></td>`+
+  const playerRow=p=>{const ch=courseHcp(p);const [fs,ft]=totF(sc[p],c.par.map((_,i)=>netOf(p,i)));
+    return `<tr class="ply"><td><div class="pwrap"><span class="pn">${esc(st.names[p])}</span><span class="phdc" title="HDC de cancha ${fmtH(ch)} · juega ${fmtH(PH[p])}">${st.hcp[p]==null?"–":fmtH(PH[p])}</span></div></td>`+
       row(i=>{const s=sc[p][i];const [sh,co]=cls(s,c.par[i]);
         return `<td class="${segC(i)}"><div class="cell mark ${sh} ${co}">${dots(strokesOn(PH[p],i))}<input id="s${p}-${i}" inputmode="numeric" maxlength="2" data-p="${p}" data-i="${i}" value="${s||""}" aria-label="${esc(st.names[p])} hoyo ${i+1}"></div></td>`;},fs,ft)+"</tr>";};
   const bestRow=(lab,arr,cl)=>{const [fs,ft]=totF(arr,arr);return `<tr class="${cl}"><td>${lab}</td>${row(i=>{const s=arr[i];const [sh,co]=cls(s,c.par[i]);return `<td class="${segC(i)}"><span class="mark ${sh} ${co}" style="margin:0 auto">${s==null?"":s}</span></td>`;},fs,ft)}</tr>`;};
@@ -619,7 +617,7 @@ function renderColSummary(){const c=cur();const L=segLen();const N=st.names;cons
   $("summary").className="colsum";$("summary").innerHTML=html;}
 function renderIndSummary(){const c=cur();const sc=scores();const N=st.names;
   const rows=act().map(p=>{let thru=0,gross=0,net=0,par=0,won=0;
-    c.par.forEach((pp,i)=>{const s=sc[p][i];if(!s)return;thru++;gross+=s;net+=netFull(p,i);par+=pp;});
+    c.par.forEach((pp,i)=>{const s=sc[p][i];if(!s)return;thru++;gross+=s;net+=netOf(p,i);par+=pp;});
     c.par.forEach((_,i)=>{if(indWinner(i)===p)won++;});
     return {p,thru,gross,tp:net-par,gtp:gross-par,won};});
   rows.sort((a,b)=>(b.thru>0)-(a.thru>0)||a.tp-b.tp||b.won-a.won);
@@ -639,7 +637,7 @@ function renderPlayers(){renderNpl();const c=cur();const PH=playHcp();const tees
   const tag=p=>st.mode==="2v2"?`<span class="ptag ${p<2?"wA":"wB"}">${p<2?"A":"B"}</span>`:`<span class="ptag">J${p+1}</span>`;
   const started=A.some(p=>scores()[p].some(Boolean));
   let h=`<h2 class="pl-h2"><div>Jugadores</div><label class="allow-l" for="allow">% HDC <select id="allow">${[100,90,85,75].map(v=>`<option value="${v}"${st.allow===v?" selected":""}>${v}%</option>`).join("")}</select></label></h2>`+nplHtml();
-  if(started&&!plEdit){h+=`<div class="pl-mini">${A.map(p=>`<span class="pl-chip">${esc(short(st.names[p]))}<b>${st.hcp[p]==null?"–":fmtH(courseHcp(p))}</b></span>`).join("")}<button type="button" class="btn" id="plEdit">Editar</button></div>`;$("players").innerHTML=h;return;}
+  if(started&&!plEdit){h+=`<div class="pl-mini">${A.map(p=>`<span class="pl-chip">${esc(short(st.names[p]))}<b>${st.hcp[p]==null?"–":fmtH(playHcp()[p])}</b></span>`).join("")}<button type="button" class="btn" id="plEdit">Editar</button></div>`;$("players").innerHTML=h;return;}
   h+=`<div class="pl-grid"><div class="pl-h"></div><div class="pl-h">Nombre</div><div class="pl-h">Índice</div><div class="pl-h">Salida</div><div class="pl-h c">HDC</div>`;
   A.forEach(p=>{const ix=st.hcp[p];const ch=courseHcp(p);const rs=ratingOf(p);const tv=teeOf(p);
     h+=`${tag(p)}<input class="pname" id="pn${p}" data-p="${p}" value="${esc(st.names[p])}" aria-label="Nombre jugador ${p+1}" autocomplete="off">
@@ -725,7 +723,7 @@ function shotSummary(){const c=cur();const N=st.names;const L=[];
       const a=`${N[pr[0][0]]} y ${N[pr[0][1]]}`,b=`${N[pr[1][0]]} y ${N[pr[1][1]]}`;
       L.push({t:`Hoyos ${s*Lg+1}–${(s+1)*Lg}: ${a} vs ${b}`,v:!pl?"–":d===0?"=":"+"+Math.abs(d),c:d>0?IMG.band:d<0?IMG.gold:IMG.muted,sub:!pl?"":d===0?"Van iguales":`Gana ${d>0?a:b}`});});
     [0,1,2,3].sort((a,b)=>bal[b]-bal[a]).forEach(p=>L.push({t:N[p],v:bal[p]>0?"+"+bal[p]:bal[p]<0?"−"+(-bal[p]):"0",c:bal[p]>0?IMG.red:bal[p]<0?IMG.blue:IMG.ink,sub:"Balance"}));}
-  else{const rows=act().map(p=>{let th=0,net=0,par=0,won=0;c.par.forEach((pp,i)=>{const s=scores()[p][i];if(!s)return;th++;net+=netFull(p,i);par+=pp;});
+  else{const rows=act().map(p=>{let th=0,net=0,par=0,won=0;c.par.forEach((pp,i)=>{const s=scores()[p][i];if(!s)return;th++;net+=netOf(p,i);par+=pp;});
       c.par.forEach((_,i)=>{if(indWinner(i)===p)won++;});return {p,th,tp:net-par,won};}).sort((a,b)=>(b.th>0)-(a.th>0)||a.tp-b.tp||b.won-a.won);
     rows.forEach((r,k)=>L.push({t:`${k+1}. ${N[r.p]}`,v:r.th?fmtTo(r.tp):"–",c:r.tp<0?IMG.red:r.tp>0?IMG.blue:IMG.ink,sub:`${r.th} hoyos · ${r.won} ${r.won===1?"ganado":"ganados"}`}));}
   return L;}
@@ -789,10 +787,10 @@ async function buildShot(){try{await document.fonts.ready;}catch(e){}
     if(p==="A"||p==="B"){const ps=p==="A"?[0,1]:[2,3];const arr=c.par.map((_,i)=>bestNet(ps,i));
       g.fillStyle=IMG.row;g.fillRect(P,y,W-2*P,RH);label(`MEJOR NETO ${p}`,p==="A"?IMG.band:IMG.gold,`700 22px ${FN}`);
       for(let i=0;i<n;i++)drawMark(g,hx[i],y+RH/2,arr[i],c.par[i]);totals(arr,arr);line();y+=RH;return;}
-    const h=st.hcp[p]==null?null:courseHcp(p);label(`${N0(p)}${h==null?"":" ("+fmtH(h)+")"}`,IMG.ink,`600 24px ${FN}`);
+    const h=st.hcp[p]==null?null:PH[p];label(`${N0(p)}${h==null?"":" ("+fmtH(h)+")"}`,IMG.ink,`600 24px ${FN}`);
     for(let i=0;i<n;i++){drawMark(g,hx[i],y+RH/2,sc[p][i],c.par[i]);const s=strokesOn(PH[p],i);
       if(s>0){g.fillStyle=IMG.accent;for(let d=0;d<Math.min(s,3);d++){g.beginPath();g.arc(hx[i]+24-d*8,y+9,3,0,7);g.fill();}}}
-    totals(sc[p],c.par.map((_,i)=>netFull(p,i)));line();y+=RH;});
+    totals(sc[p],c.par.map((_,i)=>netOf(p,i)));line();y+=RH;});
   if(isCol()){g.fillStyle=IMG.row;g.fillRect(P,y,W-2*P,RH);label("VA GANANDO",IMG.ink);
     for(let i=0;i<n;i++){const r=runs[i];if(r.run==null)continue;g.font=`700 24px ${FN}`;g.fillStyle=r.run>0?IMG.band:r.run<0?IMG.gold:IMG.muted;
       g.fillText(r.run===0?"=":"+"+Math.abs(r.run),hx[i],y+RH/2);if(r.mult>1){g.font=`700 14px ${FN}`;g.fillStyle=IMG.accent;g.fillText("x"+r.mult,hx[i]+22,y+12);}}
@@ -811,14 +809,14 @@ async function buildShot(){try{await document.fonts.ready;}catch(e){}
   y+=smRows*74+20;
   g.textAlign="left";g.font=`500 18px ${FB}`;g.fillStyle=IMG.muted;
   g.fillText(`Neto con ${st.allow}% del hándicap${st.offLow?", golpes desde el más bajo":""}. Círculo: birdie · cuadrado: bogey · puntos dorados: golpes de hándicap.`,P,y+10);
-  return new Promise(r=>cv.toBlob(b=>r(b),"image/png"));}
+  return new Promise(r=>cv.toBlob(b=>r(b),"image/jpeg",0.93));}
 function sum0(a){return a.reduce((x,y)=>x+(y||0),0);}
 function N0(p){return String(st.names[p]||"Jugador "+(p+1)).toUpperCase();}
 
 async function saveRound(){const btn=$("saveRound");btn.disabled=true;btn.textContent="Generando…";try{backupRound();}catch(e){}
   try{const blob=await buildShot();const c=cur();
     const fname=photoName();
-    const file=new File([blob],fname,{type:"image/png"});
+    const file=new File([blob],fname,{type:"image/jpeg"});
     if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file]});return;}catch(e){if(e&&e.name==="AbortError")return;}}
     const url=URL.createObjectURL(blob);$("shotImg").src=url;$("shotDl").href=url;$("shotDl").download=fname;$("shot").hidden=false;
   }catch(e){$("shotMsg").textContent="No se pudo generar la imagen. Intenta de nuevo.";$("shot").hidden=false;}
@@ -846,7 +844,7 @@ function hxStatus(i){const c=cur();const N=st.names;
   const a=bestNet([0,1],i),b=bestNet([2,3],i);
   return {t:`Mejor neto: Pareja A ${a} · Pareja B ${b}${a<b?" · gana A":b<a?" · gana B":" · empate"}`,c:a<b?"wA":b<a?"wB":"wT"};}
 function standLine(p){const c=cur();const sc=scores();const N=st.names;
-  if(st.mode==="ind"){const rows=act().map(q=>{let th=0,net=0,par=0;c.par.forEach((pp,i)=>{if(!sc[q][i])return;th++;net+=netFull(q,i);par+=pp;});return {q,th,tp:net-par};});
+  if(st.mode==="ind"){const rows=act().map(q=>{let th=0,net=0,par=0;c.par.forEach((pp,i)=>{if(!sc[q][i])return;th++;net+=netOf(q,i);par+=pp;});return {q,th,tp:net-par};});
     const me=rows.find(r=>r.q===p);if(!me.th)return null;const pos=1+rows.filter(r=>r.th&&r.tp<me.tp).length;const tie=rows.filter(r=>r.th&&r.tp===me.tp).length>1;
     return {t:`${tie?"T":""}${pos}° · ${fmtTo(me.tp)} neto`,c:me.tp<0?"c-under":me.tp>0?"c-over":""};}
   if(isCol()){const R=colRun();const Lg=segLen();let b=0,any=false;
@@ -932,7 +930,7 @@ async function backup(payload){
   catch(e){enqueue(payload,"t:"+payload.clave);toast("Sin señal: el respaldo se subirá cuando vuelva la conexión.");}}
 function backupRound(){const c=cur();const sc=scores();const PH=playHcp();const n=c.par.length;
   const filas=act().map(p=>{const g=sc[p].slice(0,n);const pl=c.par.map((_,i)=>i).filter(i=>g[i]);
-    const net=sum(pl.map(i=>netFull(p,i)));const par=sum(pl.map(i=>c.par[i]));
+    const net=sum(pl.map(i=>netOf(p,i)));const par=sum(pl.map(i=>c.par[i]));
     return {jugador:st.names[p],indice:st.hcp[p],hdc:st.hcp[p]==null?null:courseHcp(p),juega:PH[p],salida:teeOf(p),g,
       out:n===18?sum(g.slice(0,9).filter(Boolean)):null,in:n===18?sum(g.slice(9,18).filter(Boolean)):null,gross:sum(pl.map(i=>g[i])),neto:net,netoPar:net-par,hoyos:pl.length};});
   if(!filas.some(f=>f.hoyos))return;
@@ -1058,9 +1056,9 @@ async function buildLiveShot(){try{await document.fonts.ready;}catch(e){}
     line(RH);y+=RH;});
   g.textAlign="left";g.textBaseline="alphabetic";g.font=`500 18px ${FB}`;g.fillStyle=IMG.muted;
   g.fillText(`Ordenado por neto. Círculo: birdie · cuadrado: bogey · puntos dorados: golpes de hándicap. Código de jornada ${j.id}.`,P,y+40);
-  return new Promise(r=>cv.toBlob(b=>r(b),"image/png"));}
-function photoName(){const d=new Date(),z=x=>String(x).padStart(2,"0");return `IMG_${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}${z(d.getSeconds())}.png`;}
-async function shareImage(blob,fname){const file=new File([blob],fname,{type:"image/png"});
+  return new Promise(r=>cv.toBlob(b=>r(b),"image/jpeg",0.93));}
+function photoName(){const d=new Date(),z=x=>String(x).padStart(2,"0");return `IMG_${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}${z(d.getSeconds())}.jpg`;}
+async function shareImage(blob,fname){const file=new File([blob],fname,{type:"image/jpeg"});
   if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file]});return;}catch(e){if(e&&e.name==="AbortError")return;}}
   const url=URL.createObjectURL(blob);$("shotImg").src=url;$("shotDl").href=url;$("shotDl").download=fname;$("shotMsg").textContent="Mantén presionada la imagen para guardarla o compartirla.";$("shot").hidden=false;}
 document.addEventListener("click",async e=>{const b=e.target.closest("#lvSave");if(!b)return;
@@ -1082,7 +1080,7 @@ async function loadLive(){if(!st.live)return;$("lvStatus").textContent="Actualiz
     const c=COURSES.find(x=>x.label===r.jornada.cancha)||cur();const pct=r.jornada.porcentaje||100;const rows=[];
     r.grupos.forEach(g=>{const d=g.data||{};(d.jugadores||[]).forEach(j=>{const ph=Math.round(chFor(c,j)*pct/100);let thru=0,gross=0,net=0,par=0,last=0;
       c.par.forEach((pp,i)=>{const s=j.g&&j.g[i];if(!s)return;thru++;last=Math.max(last,i+1);gross+=s;net+=s-strokesFor(c,ph,i);par+=pp;});
-      rows.push({ix:j.i==null||j.i===""?null:Number(j.i),tee:j.tee||"",ch:j.i==null||j.i===""?null:chFor(c,j),n:j.n,nh:j.i==null||j.i===""?esc(j.n):`${esc(j.n)} (${fmtH(chFor(c,j))})`,nhRaw:j.i==null||j.i===""?String(j.n):`${j.n} (${fmtH(chFor(c,j))})`,grupo:g.grupo,thru,last,gross,tp:net-par,gtp:gross-par,ph,t:g.t,g:(j.g||[]).slice(0,c.par.length),net:c.par.map((pp,i)=>{const s=j.g&&j.g[i];return s?s-strokesFor(c,ph,i):null;})});});});
+      rows.push({ix:j.i==null||j.i===""?null:Number(j.i),tee:j.tee||"",ch:j.i==null||j.i===""?null:chFor(c,j),n:j.n,nh:j.i==null||j.i===""?esc(j.n):`${esc(j.n)} (${fmtH(ph)})`,nhRaw:j.i==null||j.i===""?String(j.n):`${j.n} (${fmtH(ph)})`,grupo:g.grupo,thru,last,gross,tp:net-par,gtp:gross-par,ph,t:g.t,g:(j.g||[]).slice(0,c.par.length),net:c.par.map((pp,i)=>{const s=j.g&&j.g[i];return s?s-strokesFor(c,ph,i):null;})});});});
     rows.sort((a,b)=>(b.thru>0)-(a.thru>0)||a.tp-b.tp||b.thru-a.thru);
     let pos=0,prev=null;
     lastLive={c,rows,j:r.jornada};renderLiveCard(c,rows);
