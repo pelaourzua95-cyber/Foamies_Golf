@@ -193,6 +193,9 @@ body.noscroll{overflow:hidden}
 .hx-lvbar .lvb-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hx-lvbar .lvb-go{color:rgba(255,255,255,.75);font-weight:700}
 @keyframes lvpulse{0%,100%{opacity:1}50%{opacity:.35}}
+.lv-cta .btn{flex:1}
+.lv-hint{margin:6px 14px 0}
+.lv-spect{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:rgba(255,255,255,.15);font:700 11px var(--f-num);letter-spacing:.1em;vertical-align:middle}
 .lv-anotar{font-size:16px;padding:13px}
 .hx-pos{display:block;font:700 12px var(--f-num);letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
 .hx-hbtns{display:flex;gap:8px;align-items:center}
@@ -403,7 +406,7 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
     <div id="resetBox"><button class="btn" id="reset" type="button">Borrar puntajes</button></div>
     </div>
     <div class="src" id="src"></div>
-    <div class="src" id="appVer">Versión 6-nov 00:20</div>
+    <div class="src" id="appVer">Versión 6-nov 00:30</div>
    </div>
   </div></div>
   <div id="hx" class="hx" hidden role="dialog" aria-modal="true" aria-labelledby="hxTitle">
@@ -1005,11 +1008,11 @@ function renderLiveBox(){const b=$("livebox");if(!b)return;
     <div class="lv-on"><div><b>${esc(st.live.nombre||"Jornada")}</b><div class="src">Código <b class="code">${esc(st.live.id)}</b> · Grupo ${esc(st.live.grupo)} · ${esc(st.live.cancha||"")}</div></div>
     <div class="lv-btns"><button type="button" class="btn primary" id="lvOpen">Ver en vivo</button><button type="button" class="btn" id="lvLeave">Salir</button></div></div>
     <p class="src" id="lvMsg"></p>`;}
-  else if(!lvForm){b.innerHTML=`<h2>Jornada en vivo <span id="syncDot" class="sync"></span></h2><div class="lv-cta"><span class="src" style="margin:0">Varias salidas, una tabla común.</span><button type="button" class="btn" id="lvShow">Crear o unirse</button></div><p class="src" id="lvMsg"></p>`;}
+  else if(!lvForm){b.innerHTML=`<h2>Jornada en vivo <span id="syncDot" class="sync"></span></h2><div class="lv-cta"><button type="button" class="btn" id="lvWatchToday">Solo mirar</button><button type="button" class="btn primary" id="lvShow">Crear o unirse</button></div><p class="src lv-hint">Solo mirar abre la jornada de hoy sin sumarte como grupo.</p><p class="src" id="lvMsg"></p>`;}
   else{b.innerHTML=`<h2>Jornada en vivo <span id="syncDot" class="sync"></span></h2>
     <div class="lv-form">
       <label for="lvGrupo">Nombre de tu grupo</label><input id="lvGrupo" placeholder="Salida 10:00" value="${esc(st.lastGrupo||"")}" autocomplete="off">
-      <div class="lv-row"><input id="lvCode" placeholder="FOAMIES o código" maxlength="7" autocomplete="off" aria-label="Código de la jornada"><button type="button" class="btn" id="lvJoin">Unirse</button></div>
+      <div class="lv-row"><input id="lvCode" placeholder="FOAMIES o código" maxlength="7" autocomplete="off" aria-label="Código de la jornada"><button type="button" class="btn" id="lvJoin">Unirse</button><button type="button" class="btn" id="lvWatch">Solo mirar</button></div>
       <div class="lv-row"><input id="lvName" placeholder="Nombre de la jornada (opcional)" autocomplete="off" aria-label="Nombre de la jornada"><button type="button" class="btn primary" id="lvCreate">Crear jornada</button></div>
       <p class="src" id="lvMsg">Modalidad individual en neto. Crea la jornada con la cancha elegida arriba y comparte el código; las otras salidas se unen con él.</p></div>`;}
   setSync(syncState);}
@@ -1038,6 +1041,16 @@ document.addEventListener("click",async e=>{const b=e.target.closest("button");i
   if(b.id==="lvAnotar"){const fromHx=!$("hx").hidden;closeLive();if(!fromHx)openHx();return;}
   if(b.id==="lvRefresh"){loadLive();return;}});
 let confirmJoin=false,confirmCreate=false;
+let watchId=null;
+const liveId=()=>st.live?st.live.id:watchId;
+async function startWatch(code,btn){if(!navigator.onLine){lvMsg("Necesitas señal para ver la jornada.",true);return;}
+  if(btn)btn.disabled=true;lvMsg("Buscando la jornada…");
+  try{const r=await apiGet({action:"jornada",id:code});if(!r.ok)throw new Error(r.error);watchId=r.jornada.id;lvMsg("");openLive();}
+  catch(err){const m=err.message||"";lvMsg(m.startsWith("Todavía")?"Todavía no se crea la jornada de hoy.":m.startsWith("No existe")?"No existe una jornada con ese código.":"No se pudo conectar: "+(m||"revisa la señal")+".",true);}
+  finally{if(btn)btn.disabled=false;}}
+document.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.id==="lvWatchToday"){startWatch("FOAMIES",b);return;}
+  if(b.id==="lvWatch"){const id=($("lvCode").value.trim()||"FOAMIES").toUpperCase();if(id.length<5){lvMsg("Escribe FOAMIES o el código de 5 letras.",true);return;}startWatch(id,b);}});
 
 // Tarjeta completa de la jornada (todos los jugadores, hoyo a hoyo)
 function renderLiveCard(c,rows){const n=c.par.length;const nines=n===18?[[0,9,"Out"],[9,18,"In"]]:[[0,n,"Out"]];
@@ -1115,27 +1128,28 @@ document.addEventListener("click",async e=>{const b=e.target.closest("#lvSave");
 // Tabla general
 let liveTimer=null;
 function lvAnotarTxt(){const n=cur().par.length;const all=[...Array(n).keys()].every(holeDone);return $("hx").hidden?(all?"Ver mi tarjeta":`Anotar hoyo ${firstPending()+1}`):`Anotar hoyo ${hxI+1}`;}
-function openLive(){$("lvAnotar").textContent=lvAnotarTxt();$("lvClose").hidden=!$("hx").hidden;$("lvClose").textContent=$("hx").hidden?"Tarjeta":`Volver al hoyo ${hxI+1}`;if(!st.lvTabV2){st.lvTab="tarjeta";st.lvTabV2=true;}const k=st.lvTab||"tarjeta";document.querySelectorAll(".lv-tab").forEach(x=>{const on=x.dataset.tab===k;x.classList.toggle("on",on);x.setAttribute("aria-selected",on);});$("lvTabTabla").hidden=k!=="tabla";$("lvTabTarjeta").hidden=k!=="tarjeta";$("live").hidden=false;document.body.classList.add("noscroll");flush();loadLive();liveTimer=setInterval(loadLive,15000);}
-function closeLive(){$("live").hidden=true;if($("hx").hidden)document.body.classList.remove("noscroll");else renderHx();clearInterval(liveTimer);}
+function openLive(){const spect=!st.live;$("lvAnotar").hidden=spect;$("lvAnotar").textContent=spect?"":lvAnotarTxt();$("lvClose").hidden=!spect&&!$("hx").hidden;$("lvClose").textContent=spect?"Salir":$("hx").hidden?"Tarjeta":`Volver al hoyo ${hxI+1}`;$("lvTitle").textContent="Cargando…";if(!st.lvTabV2){st.lvTab="tarjeta";st.lvTabV2=true;}const k=st.lvTab||"tarjeta";document.querySelectorAll(".lv-tab").forEach(x=>{const on=x.dataset.tab===k;x.classList.toggle("on",on);x.setAttribute("aria-selected",on);});$("lvTabTabla").hidden=k!=="tabla";$("lvTabTarjeta").hidden=k!=="tarjeta";$("live").hidden=false;document.body.classList.add("noscroll");flush();loadLive();liveTimer=setInterval(loadLive,15000);}
+function closeLive(){$("live").hidden=true;watchId=null;if($("hx").hidden)document.body.classList.remove("noscroll");else renderHx();clearInterval(liveTimer);}
 function chFor(c,j){const i=j.i==null?0:Number(j.i);const rs=c.rs&&c.rs[j.tee];
   return rs?Math.round(i*rs[1]/113+rs[0]-sum(c.par)):Math.round(c.par.length===9?i/2:i);}
 function strokesFor(c,ph,i){if(!c.si)return 0;const n=c.par.length;const si=c.si[i];
   if(ph>=0)return Math.floor(ph/n)+(si<=ph%n?1:0);const a=-ph;return -(Math.floor(a/n)+(si>n-(a%n)?1:0));}
-async function loadLive(){if(!st.live)return;$("lvStatus").textContent="Actualizando…";
-  try{const r=await apiGet({action:"jornada",id:st.live.id});if(!r.ok)throw new Error(r.error);
+async function loadLive(){const LID=liveId();if(!LID)return;$("lvStatus").textContent="Actualizando…";
+  try{const r=await apiGet({action:"jornada",id:LID});if(!r.ok)throw new Error(r.error);
     const c=COURSES.find(x=>x.label===r.jornada.cancha)||cur();const pct=r.jornada.porcentaje||100;const rows=[];
     r.grupos.forEach(g=>{const d=g.data||{};(d.jugadores||[]).forEach(j=>{const ph=Math.round(chFor(c,j)*pct/100);let thru=0,gross=0,net=0,par=0,last=0;
       c.par.forEach((pp,i)=>{const s=j.g&&j.g[i];if(!s)return;thru++;last=Math.max(last,i+1);gross+=s;net+=s-strokesFor(c,ph,i);par+=pp;});
       rows.push({ix:j.i==null||j.i===""?null:Number(j.i),tee:j.tee||"",ch:j.i==null||j.i===""?null:chFor(c,j),n:j.n,nh:j.i==null||j.i===""?esc(j.n):`${esc(j.n)} (${fmtH(ph)})`,nhRaw:j.i==null||j.i===""?String(j.n):`${j.n} (${fmtH(ph)})`,grupo:g.grupo,thru,last,gross,tp:net-par,gtp:gross-par,ph,t:g.t,g:(j.g||[]).slice(0,c.par.length),net:c.par.map((pp,i)=>{const s=j.g&&j.g[i];return s?s-strokesFor(c,ph,i):null;})});});});
+    for(let k=rows.length-1;k>=0;k--)if(!rows[k].thru&&isDefaultName(String(rows[k].n)))rows.splice(k,1);
     rows.sort((a,b)=>(b.thru>0)-(a.thru>0)||a.tp-b.tp||b.thru-a.thru);
     let pos=0,prev=null;
     lastLive={c,rows,j:r.jornada};renderLiveCard(c,rows);if(!$("hx").hidden)renderHx();
     $("lvTitle").textContent=r.jornada.nombre;
-    $("lvMeta").textContent=`${r.jornada.cancha} · Código ${r.jornada.id} · ${pct}% del HDC`;
+    $("lvMeta").textContent=`${r.jornada.cancha} · Código ${r.jornada.id} · ${pct}% del HDC`;if(!st.live)$("lvTitle").insertAdjacentHTML("beforeend",'<span class="lv-spect">ESPECTADOR</span>');
     $("lvTable").innerHTML=`<colgroup><col style="width:30px"><col><col style="width:48px"><col style="width:50px"><col style="width:40px"><col style="width:44px"></colgroup><tr><th>Pos</th><th>Jugador</th><th>Gross</th><th>Neto</th><th>Hoyo</th><th>Tot</th></tr>`+rows.map((x,k)=>{if(x.tp!==prev){pos=k+1;prev=x.tp;}
       return `<tr><td>${x.thru?pos:"–"}</td><td class="lb-name">${x.nh}</td><td class="lb-gross">${x.thru?fmtTo(x.gtp):"–"}</td><td class="lb-big ${x.thru?(x.tp<0?"c-under":x.tp>0?"c-over":""):""}">${x.thru?fmtTo(x.tp):"–"}</td><td>${x.thru?(x.thru===c.par.length?"F":x.last):"–"}</td><td>${x.thru?x.gross:"–"}</td></tr>`;}).join("");
     const ago=t=>{const m=Math.round((Date.now()-t)/60000);return m<1?"recién":`hace ${m} min`;};
-    $("lvGroups").innerHTML=r.grupos.map(g=>{const js=(g.data&&g.data.jugadores)||[];const h=Math.max(0,...js.map(j=>(j.g||[]).reduce((a,s,i)=>s?i+1:a,0)));
+    $("lvGroups").innerHTML=r.grupos.filter(g=>{const js=(g.data&&g.data.jugadores)||[];return js.some(j=>!isDefaultName(String(j.n||""))||(j.g||[]).some(Boolean));}).map(g=>{const js=(g.data&&g.data.jugadores)||[];const h=Math.max(0,...js.map(j=>(j.g||[]).reduce((a,s,i)=>s?i+1:a,0)));
       return `<span class="chip">${esc(g.grupo)} · ${h?(h===c.par.length?"terminó":"hoyo "+h):"sin empezar"} · ${ago(g.t)}</span>`;}).join(" ");
     $("lvStatus").textContent=`Actualizado ${new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})} · se refresca cada 15 s`;setSync("ok");}
   catch(e){$("lvStatus").textContent="Sin conexión con la planilla. Se reintenta solo.";setSync("off");}}
