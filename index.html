@@ -169,6 +169,15 @@ body.noscroll{overflow:hidden}
 .pl-chip b{color:var(--accent);font-size:14px}
 .pl-mini .btn{margin-left:auto;padding:6px 12px}
 .pl-done{display:flex;justify-content:flex-end;padding:10px 12px 0}
+.mast-r{display:flex;align-items:center;gap:10px}
+.gear{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;padding:0}
+.gear:active{transform:scale(.94)}
+.gear:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.set-ov{position:fixed;inset:0;z-index:70;background:rgba(5,12,24,.55);display:flex;align-items:flex-end;justify-content:center}
+.set-panel{background:var(--card);color:var(--ink);width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:16px 16px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.3);padding-bottom:env(safe-area-inset-bottom,0px)}
+.set-head{position:sticky;top:0;background:var(--card);display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);z-index:1}
+.set-head h2{margin:0;font:700 17px var(--f-num);letter-spacing:.14em;text-transform:uppercase}
+@media (min-width:600px){.set-ov{align-items:center}.set-panel{border-radius:16px}}
 .ajustes{padding:0}
 .ajustes>summary{cursor:pointer;list-style:none;padding:12px 14px;font:700 15px var(--f-num);letter-spacing:.14em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
 .ajustes>summary::-webkit-details-marker{display:none}
@@ -337,7 +346,7 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
 
 <div class="wrap">
   <header class="mast">
-    <div class="mast-top"><div class="brand">Fourball · Tarjeta oficial</div><div class="brand" id="hcount"></div></div>
+    <div class="mast-top"><div class="brand">Fourball · Tarjeta oficial</div><div class="mast-r"><div class="brand" id="hcount" hidden></div><button type="button" class="gear" id="setOpen" aria-label="Ajustes" title="Ajustes"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6a.5.5 0 0 0 .1-.6l-2-3.5a.5.5 0 0 0-.6-.2l-2.5 1a7.4 7.4 0 0 0-1.7-1l-.4-2.6a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0-.5.4l-.4 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.6.2l-2 3.5a.5.5 0 0 0 .1.6L4.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6a.5.5 0 0 0-.1.6l2 3.5c.1.2.4.3.6.2l2.5-1c.5.4 1.1.7 1.7 1l.4 2.6c0 .3.3.5.5.5h4c.3 0 .5-.2.5-.4l.4-2.7c.6-.3 1.2-.6 1.7-1l2.5 1c.2.1.5 0 .6-.2l2-3.5a.5.5 0 0 0-.1-.6L19.4 13ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"/></svg></button></div></div>
     <div class="picker">
       <div class="pick-row">
         <div class="pick-club">
@@ -367,7 +376,8 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
   <section class="card"><h2>Tarjeta <span id="h-out"></span></h2><div class="scroll sc-scroll"><table id="t1"></table></div></section>
   <section class="summary" id="summary"></section>
   <div class="save"><button class="btn primary" id="saveRound" type="button">Guardar vuelta</button><span class="src">Crea una imagen de la tarjeta para compartir o guardar en el teléfono.</span></div>
-  <details class="card ajustes" id="ajustes"><summary>Ajustes de la vuelta</summary>
+  <div class="set-ov" id="ajustes" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle"><div class="set-panel">
+   <div class="set-head"><h2 id="setTitle">Ajustes</h2><button type="button" class="btn primary" id="setClose">Listo</button></div>
    <div class="aj-body">
     <label class="chk"><input type="checkbox" id="showwin"> Mostrar quién gana el hoyo <small>(Individual)</small></label>
     <label class="chk"><input type="checkbox" id="offlow"> Golpes desde el hándicap más bajo</label>
@@ -385,9 +395,9 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
     <div id="resetBox"><button class="btn" id="reset" type="button">Borrar puntajes</button></div>
     </div>
     <div class="src" id="src"></div>
-    <div class="src" id="appVer">Versión 5-nov 23:30</div>
+    <div class="src" id="appVer">Versión 5-nov 23:50</div>
    </div>
-  </details>
+  </div></div>
   <div id="hx" class="hx" hidden role="dialog" aria-modal="true" aria-labelledby="hxTitle">
     <div class="hx-top">
       <div class="hx-head"><div><h2 id="hxTitle">Hoyo 1</h2><div class="hx-meta" id="hxMeta"></div></div><div class="hx-hbtns"><button type="button" class="btn" id="hxLive" hidden>En vivo</button><button type="button" class="btn" id="hxClose">Tarjeta</button></div></div>
@@ -837,6 +847,10 @@ function holeDone(i){return act().every(p=>scores()[p][i]);}
 function firstPending(){const n=cur().par.length;for(let i=0;i<n;i++)if(!holeDone(i))return i;return n-1;}
 function openHx(i){$("hx").hidden=false;document.body.classList.add("noscroll");goHx(i==null?firstPending():i);
   try{navigator.wakeLock&&navigator.wakeLock.request("screen").then(w=>{wake=w;}).catch(()=>{});}catch(e){}}
+function openSet(){$("ajustes").hidden=false;document.body.classList.add("noscroll");}
+function closeSet(){$("ajustes").hidden=true;if($("hx").hidden&&$("live").hidden)document.body.classList.remove("noscroll");}
+document.addEventListener("click",e=>{if(e.target.closest("#setOpen")){openSet();return;}if(e.target.id==="setClose"||e.target.id==="ajustes"){closeSet();}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("ajustes").hidden)closeSet();});
 function closeHx(){$("hx").hidden=true;document.body.classList.remove("noscroll");try{wake&&wake.release();}catch(e){}wake=null;render();}
 function setScore(p,i,v){v=Math.max(1,Math.min(20,v));scores()[p][i]=v;st.example=false;save();renderHx();}
 function hxStatus(i){const c=cur();const N=st.names;
