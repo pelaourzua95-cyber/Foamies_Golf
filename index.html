@@ -187,6 +187,13 @@ body.noscroll{overflow:hidden}
 .aj-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:12px}
 #rulesBox .rules{margin:0}
 .lv-cta{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px 0}
+.hx-lvbar{display:flex;align-items:center;gap:8px;width:100%;max-width:560px;margin:8px auto 0;padding:8px 12px;border-radius:9px;border:1px solid rgba(255,90,110,.7);background:rgba(208,16,43,.22);color:#fff;font:600 13px var(--f-body);text-align:left;cursor:pointer}
+.hx-lvbar .lvb-dot{width:8px;height:8px;border-radius:50%;background:#ff3b52;flex:none;animation:lvpulse 1.6s infinite}
+.hx-lvbar b{font-family:var(--f-num);letter-spacing:.08em;color:#ff8a98;font-size:12px}
+.hx-lvbar .lvb-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hx-lvbar .lvb-go{color:rgba(255,255,255,.75);font-weight:700}
+@keyframes lvpulse{0%,100%{opacity:1}50%{opacity:.35}}
+.lv-anotar{font-size:16px;padding:13px}
 .hx-pos{display:block;font:700 12px var(--f-num);letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
 .hx-hbtns{display:flex;gap:8px;align-items:center}
 #hxLive{background:#d0102b;border-color:#d0102b;color:#fff}
@@ -379,6 +386,7 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
   <div class="set-ov" id="ajustes" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle"><div class="set-panel">
    <div class="set-head"><h2 id="setTitle">Ajustes</h2><button type="button" class="btn primary" id="setClose">Listo</button></div>
    <div class="aj-body">
+    <label class="chk"><input type="checkbox" id="autohx"> Abrir directo en Anotar si hay una vuelta en curso</label>
     <label class="chk"><input type="checkbox" id="showwin"> Mostrar quién gana el hoyo <small>(Individual)</small></label>
     <label class="chk"><input type="checkbox" id="offlow"> Golpes desde el hándicap más bajo</label>
     <div class="hset-info" id="hinfo"></div>
@@ -395,13 +403,14 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
     <div id="resetBox"><button class="btn" id="reset" type="button">Borrar puntajes</button></div>
     </div>
     <div class="src" id="src"></div>
-    <div class="src" id="appVer">Versión 5-nov 23:50</div>
+    <div class="src" id="appVer">Versión 6-nov 00:20</div>
    </div>
   </div></div>
   <div id="hx" class="hx" hidden role="dialog" aria-modal="true" aria-labelledby="hxTitle">
     <div class="hx-top">
       <div class="hx-head"><div><h2 id="hxTitle">Hoyo 1</h2><div class="hx-meta" id="hxMeta"></div></div><div class="hx-hbtns"><button type="button" class="btn" id="hxLive" hidden>En vivo</button><button type="button" class="btn" id="hxClose">Tarjeta</button></div></div>
       <div class="hx-strip" id="hxStrip"></div>
+      <button type="button" class="hx-lvbar" id="hxLvBar" hidden></button>
     </div>
     <div class="hx-body" id="hxBody">
       <div class="hx-edit" id="hxEdit" hidden>Estás corrigiendo un hoyo ya anotado: el marcador se recalcula solo.</div>
@@ -422,7 +431,7 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
       <div class="stand" id="lvTabTabla" hidden><h3>Tabla general · neto</h3><div class="scroll"><table class="lb lv-lb" id="lvTable"></table></div></div>
       <p class="src" id="lvStatus"></p>
     </div>
-    <div class="hx-foot"><div class="hx-nav"><button type="button" class="btn" id="lvRefresh">Actualizar</button><button type="button" class="btn primary" id="lvSave">Guardar jornada</button></div></div>
+    <div class="hx-foot"><button type="button" class="btn primary lv-anotar" id="lvAnotar">Anotar</button><div class="hx-nav"><button type="button" class="btn" id="lvRefresh">Actualizar</button><button type="button" class="btn" id="lvSave">Guardar jornada</button></div></div>
   </div>
   <div id="shot" class="shot" hidden>
     <div class="shot-box">
@@ -444,7 +453,7 @@ let st=load();
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.scores)return s;}catch(e){}
   // Ejemplo inicial: Los Leones con los primeros hoyos cargados
   return {course:0,names:["Jugador 1","Jugador 2","Jugador 3","Jugador 4"],hcp:[8,18,12,22],allow:85,offLow:true,scores:{"0":[[4,5,3,6,4,3],[5,4,2,5,5,4],[4,4,4,5,3,3],[3,6,3,4,4,5]]},example:true};}
-st.hcp=st.hcp||[null,null,null,null];if(st.allow==null)st.allow=85;if(st.offLow==null)st.offLow=true;if(st.showWin==null)st.showWin=false;if(!st.mode||!st.modeDefInd){st.mode="ind";st.modeDefInd=true;}if(!st.roster)st.roster=[];if(!st.nInd)st.nInd=4;if(!st.tee)st.tee=["Azules","Azules","Azules","Azules"];
+st.hcp=st.hcp||[null,null,null,null];if(st.allow==null)st.allow=85;if(st.offLow==null)st.offLow=true;if(st.showWin==null)st.showWin=false;if(st.autoHx==null)st.autoHx=true;if(!st.mode||!st.modeDefInd){st.mode="ind";st.modeDefInd=true;}if(!st.roster)st.roster=[];if(!st.nInd)st.nInd=4;if(!st.tee)st.tee=["Azules","Azules","Azules","Azules"];
 function save(){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}
 const $=id=>document.getElementById(id);
 function cur(){return COURSES[st.course]||COURSES[0];}
@@ -670,7 +679,7 @@ function render(){const c=cur();const n=c.par.length;
   {const r=$("summary").querySelector(".rules");const rb=$("rulesBox");rb.innerHTML="";
    if(r)rb.appendChild(r);else rb.innerHTML=`<div class="rules"><b>2v2, en neto:</b> en cada hoyo cuenta la mejor bola neta de cada pareja. El resultado suma esas mejores bolas contra el par.</div>`;}
   $("mode").value=st.mode;
-  $("allow").value=String(st.allow);$("offlow").checked=!!st.offLow;$("showwin").checked=!!st.showWin;
+  $("allow").value=String(st.allow);$("offlow").checked=!!st.offLow;$("showwin").checked=!!st.showWin;$("autohx").checked=st.autoHx!==false;
   const PH=playHcp();
   $("hinfo").innerHTML=(c.si?"":"<b>Esta vuelta no tiene hándicap por hoyo publicado, así que el neto es igual al gross.</b> ")+
     "Golpes que recibe cada uno: "+act().map(i=>[st.names[i],i]).map(([n,i])=>`<span class="chip">${esc(n)} <b>${PH[i]>=0?PH[i]:"+"+(-PH[i])}</b></span>`).join(" ")+
@@ -691,6 +700,7 @@ document.addEventListener("input",e=>{const t=e.target;
 document.addEventListener("change",e=>{
   if(e.target.id==="mode"){st.mode=e.target.value;save();render();return;}
   if(e.target.id==="allow"){st.allow=+e.target.value;save();render();return;}
+  if(e.target.id==="autohx"){st.autoHx=e.target.checked;save();return;}
   if(e.target.id==="showwin"){st.showWin=e.target.checked;save();render();return;}
   if(e.target.id==="offlow"){st.offLow=e.target.checked;save();render();return;}
   if(e.target.matches(".ptee")){st.tee[+e.target.dataset.p]=e.target.value;save();render();return;}
@@ -845,13 +855,14 @@ let hxI=0, wake=null, hxWasDone=false;
 function goHx(k){hxI=k;hxWasDone=holeDone(k);renderHx();}
 function holeDone(i){return act().every(p=>scores()[p][i]);}
 function firstPending(){const n=cur().par.length;for(let i=0;i<n;i++)if(!holeDone(i))return i;return n-1;}
-function openHx(i){$("hx").hidden=false;document.body.classList.add("noscroll");goHx(i==null?firstPending():i);
+let hxLvT=null;
+function openHx(i){$("hx").hidden=false;if(st.live){loadLive();clearInterval(hxLvT);hxLvT=setInterval(()=>{if($("live").hidden)loadLive();},20000);}document.body.classList.add("noscroll");goHx(i==null?firstPending():i);
   try{navigator.wakeLock&&navigator.wakeLock.request("screen").then(w=>{wake=w;}).catch(()=>{});}catch(e){}}
 function openSet(){$("ajustes").hidden=false;document.body.classList.add("noscroll");}
 function closeSet(){$("ajustes").hidden=true;if($("hx").hidden&&$("live").hidden)document.body.classList.remove("noscroll");}
 document.addEventListener("click",e=>{if(e.target.closest("#setOpen")){openSet();return;}if(e.target.id==="setClose"||e.target.id==="ajustes"){closeSet();}});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("ajustes").hidden)closeSet();});
-function closeHx(){$("hx").hidden=true;document.body.classList.remove("noscroll");try{wake&&wake.release();}catch(e){}wake=null;render();}
+function closeHx(){$("hx").hidden=true;clearInterval(hxLvT);document.body.classList.remove("noscroll");try{wake&&wake.release();}catch(e){}wake=null;render();}
 function setScore(p,i,v){v=Math.max(1,Math.min(20,v));scores()[p][i]=v;st.example=false;save();renderHx();}
 function hxStatus(i){const c=cur();const N=st.names;
   if(!holeDone(i))return {t:"Faltan golpes por anotar en este hoyo",c:""};
@@ -864,7 +875,11 @@ function hxStatus(i){const c=cur();const N=st.names;
     return {t:`${hole} · ${run}`,c:x.run>0?"wA":x.run<0?"wB":"wT"};}
   const a=bestNet([0,1],i),b=bestNet([2,3],i);
   return {t:`Mejor neto: Pareja A ${a} · Pareja B ${b}${a<b?" · gana A":b<a?" · gana B":" · empate"}`,c:a<b?"wA":b<a?"wB":"wT"};}
+function livePos(name){if(!st.live||!lastLive||lastLive.j.id!==st.live.id)return null;const rows=lastLive.rows.filter(r=>r.thru);
+  const me=rows.find(r=>r.grupo===st.live.grupo&&String(r.n)===String(name));if(!me)return null;
+  const pos=1+rows.filter(r=>r.tp<me.tp).length;const tie=rows.filter(r=>r.tp===me.tp).length>1;return {pos,tie,n:rows.length,tp:me.tp};}
 function standLine(p){const c=cur();const sc=scores();const N=st.names;
+  if(st.mode==="ind"){const L=livePos(N[p]);if(L)return {t:`${L.tie?"T":""}${L.pos}° de ${L.n} · ${fmtTo(L.tp)} neto`,c:L.tp<0?"c-under":L.tp>0?"c-over":""};}
   if(st.mode==="ind"){const rows=act().map(q=>{let th=0,net=0,par=0;c.par.forEach((pp,i)=>{if(!sc[q][i])return;th++;net+=netFull(q,i);par+=pp;});return {q,th,tp:net-par};});
     const me=rows.find(r=>r.q===p);if(!me.th)return null;const pos=1+rows.filter(r=>r.th&&r.tp<me.tp).length;const tie=rows.filter(r=>r.th&&r.tp===me.tp).length>1;
     return {t:`${tie?"T":""}${pos}° · ${fmtTo(me.tp)} neto`,c:me.tp<0?"c-under":me.tp>0?"c-over":""};}
@@ -875,12 +890,18 @@ function standLine(p){const c=cur();const sc=scores();const N=st.names;
   if(!pl)return null;const o=p<2?[2,3]:[0,1];let s2=0,pr2=0,pl2=0;c.par.forEach((pp,i)=>{const m=bestNet(o,i);if(m!=null){pl2++;s2+=m;pr2+=pp;}});
   const d=(s-pr)-(pl2?(s2-pr2):0);
   return {t:`Pareja ${p<2?"A":"B"} ${fmtTo(s-pr)}${pl2?(d<0?` · gana por ${-d}`:d>0?` · pierde por ${d}`:" · empatados"):""}`,c:s-pr<0?"c-under":s-pr>0?"c-over":""};}
+function renderLvBar(){const b=$("hxLvBar");if(!b)return;if(!st.live){b.hidden=true;return;}b.hidden=false;
+  let txt="Cargando posiciones…";
+  if(lastLive&&lastLive.j.id===st.live.id){const rows=lastLive.rows.filter(r=>r.thru);
+    if(rows.length){const top=rows[0];const lead=rows.filter(r=>r.tp===top.tp);
+      txt=`Líder: ${lead.length>1?lead.length+" empatados":esc(top.n)} ${fmtTo(top.tp)} · ${rows.length} jugadores`;}else txt="Nadie ha anotado todavía";}
+  b.innerHTML=`<span class="lvb-dot"></span><b>EN VIVO</b><span class="lvb-t">${txt}</span><span class="lvb-go">Ver ›</span>`;}
 function renderHx(){const c=cur();const n=c.par.length;const i=hxI;const PH=playHcp();const fp=firstPending();
   $("hxTitle").textContent=`Hoyo ${i+1}`;
   $("hxMeta").textContent=[`Par ${c.par[i]}`,c.si?`Hcp ${c.si[i]}`:null,...Object.entries(c.tees).map(([t,v])=>v[i]==null?null:`${t} ${v[i]} yd`)].filter(Boolean).join(" · ");
   $("hxStrip").innerHTML=c.par.map((_,k)=>`<button type="button" class="hx-n${k===i?" on":""}${holeDone(k)?" done":""}" data-h="${k}" aria-label="Hoyo ${k+1}">${k+1}</button>`).join("");
   const on=$("hxStrip").querySelector(".on");if(on)on.scrollIntoView({block:"nearest",inline:"center"});
-  $("hxEdit").hidden=!hxWasDone;$("hxLive").hidden=!st.live;
+  $("hxEdit").hidden=!hxWasDone;$("hxLive").hidden=true;renderLvBar();
   $("hxRows").innerHTML=act().map(p=>{const s=scores()[p][i];const v=s||c.par[i];const k=strokesOn(PH[p],i);
     const [sh,co]=s?cls(s,c.par[i]):["",""];const net=s?s-k:null;
     return `<div class="hx-row"><div class="hx-who"><b>${esc(st.names[p])}</b><small>${k>0?`Recibe ${k} golpe${k>1?"s":""} <i class="hx-dots">${"•".repeat(Math.min(k,3))}</i>`:k<0?`Da ${-k} golpe`:"Sin golpe en este hoyo"}${net!=null?` · Neto ${net}`:""}</small>${(()=>{const L=standLine(p);return L?`<small class="hx-pos ${L.c}">${L.t}</small>`:"";})()}</div>
@@ -899,7 +920,7 @@ $("hx").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)re
   if(b.id==="hxPrev"&&i>0){goHx(i-1);return;}
   if(b.id==="hxNext"){if(i<c.par.length-1){goHx(i+1);}else{closeHx();$("summary").scrollIntoView({behavior:"smooth"});}return;}
   if(b.id==="hxBack"){goHx(firstPending());return;}
-  if(b.id==="hxLive"){openLive();return;}
+  if(b.id==="hxLive"||b.id==="hxLvBar"){openLive();return;}
   if(b.id==="hxClose"){closeHx();return;}});
 let hxX=null;
 $("hxBody").addEventListener("touchstart",e=>{hxX=e.touches[0].clientX;},{passive:true});
@@ -968,7 +989,7 @@ function backupJornada(){if(!lastLive)return;const {c,rows,j}=lastLive;const n=c
 function liveData(){const c=cur();return {cancha:c.label,jugadores:act().map(p=>({n:st.names[p],i:st.hcp[p],tee:teeOf(p),g:scores()[p].slice(0,c.par.length)}))};}
 let pushT=null;
 function pushGroup(){if(!st.live)return;clearTimeout(pushT);pushT=setTimeout(()=>{
-  enqueue({action:"guardarGrupo",jornada:st.live.id,grupo:st.live.grupo,hora:st.live.grupo,data:liveData()},"g:"+st.live.id+":"+st.live.grupo);},1200);}
+  enqueue({action:"guardarGrupo",jornada:st.live.id,grupo:st.live.grupo,hora:st.live.grupo,data:liveData()},"g:"+st.live.id+":"+st.live.grupo);setTimeout(()=>{if(!$("hx").hidden||!$("live").hidden)loadLive();},2500);},1200);}
 document.addEventListener("input",e=>{if(st.live&&e.target.matches(".cell input,.pidx,.pname"))pushGroup();});
 document.addEventListener("change",e=>{if(st.live&&e.target.matches(".ptee"))pushGroup();});
 document.addEventListener("click",e=>{if(st.live&&e.target.closest(".npl-b"))pushGroup();});
@@ -1014,6 +1035,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest("button");i
   if(b.id==="lvLeave"){if(b.dataset.ok){st.live=null;save();render();}else{b.dataset.ok="1";b.textContent="¿Salir? Toca de nuevo";}return;}
   if(b.id==="lvOpen"){openLive();return;}
   if(b.id==="lvClose"){closeLive();return;}
+  if(b.id==="lvAnotar"){const fromHx=!$("hx").hidden;closeLive();if(!fromHx)openHx();return;}
   if(b.id==="lvRefresh"){loadLive();return;}});
 let confirmJoin=false,confirmCreate=false;
 
@@ -1092,7 +1114,8 @@ document.addEventListener("click",async e=>{const b=e.target.closest("#lvSave");
   finally{b.disabled=false;b.textContent="Guardar jornada";}});
 // Tabla general
 let liveTimer=null;
-function openLive(){$("lvClose").textContent=$("hx").hidden?"Tarjeta":`Volver al hoyo ${hxI+1}`;if(!st.lvTabV2){st.lvTab="tarjeta";st.lvTabV2=true;}const k=st.lvTab||"tarjeta";document.querySelectorAll(".lv-tab").forEach(x=>{const on=x.dataset.tab===k;x.classList.toggle("on",on);x.setAttribute("aria-selected",on);});$("lvTabTabla").hidden=k!=="tabla";$("lvTabTarjeta").hidden=k!=="tarjeta";$("live").hidden=false;document.body.classList.add("noscroll");flush();loadLive();liveTimer=setInterval(loadLive,15000);}
+function lvAnotarTxt(){const n=cur().par.length;const all=[...Array(n).keys()].every(holeDone);return $("hx").hidden?(all?"Ver mi tarjeta":`Anotar hoyo ${firstPending()+1}`):`Anotar hoyo ${hxI+1}`;}
+function openLive(){$("lvAnotar").textContent=lvAnotarTxt();$("lvClose").hidden=!$("hx").hidden;$("lvClose").textContent=$("hx").hidden?"Tarjeta":`Volver al hoyo ${hxI+1}`;if(!st.lvTabV2){st.lvTab="tarjeta";st.lvTabV2=true;}const k=st.lvTab||"tarjeta";document.querySelectorAll(".lv-tab").forEach(x=>{const on=x.dataset.tab===k;x.classList.toggle("on",on);x.setAttribute("aria-selected",on);});$("lvTabTabla").hidden=k!=="tabla";$("lvTabTarjeta").hidden=k!=="tarjeta";$("live").hidden=false;document.body.classList.add("noscroll");flush();loadLive();liveTimer=setInterval(loadLive,15000);}
 function closeLive(){$("live").hidden=true;if($("hx").hidden)document.body.classList.remove("noscroll");else renderHx();clearInterval(liveTimer);}
 function chFor(c,j){const i=j.i==null?0:Number(j.i);const rs=c.rs&&c.rs[j.tee];
   return rs?Math.round(i*rs[1]/113+rs[0]-sum(c.par)):Math.round(c.par.length===9?i/2:i);}
@@ -1106,7 +1129,7 @@ async function loadLive(){if(!st.live)return;$("lvStatus").textContent="Actualiz
       rows.push({ix:j.i==null||j.i===""?null:Number(j.i),tee:j.tee||"",ch:j.i==null||j.i===""?null:chFor(c,j),n:j.n,nh:j.i==null||j.i===""?esc(j.n):`${esc(j.n)} (${fmtH(ph)})`,nhRaw:j.i==null||j.i===""?String(j.n):`${j.n} (${fmtH(ph)})`,grupo:g.grupo,thru,last,gross,tp:net-par,gtp:gross-par,ph,t:g.t,g:(j.g||[]).slice(0,c.par.length),net:c.par.map((pp,i)=>{const s=j.g&&j.g[i];return s?s-strokesFor(c,ph,i):null;})});});});
     rows.sort((a,b)=>(b.thru>0)-(a.thru>0)||a.tp-b.tp||b.thru-a.thru);
     let pos=0,prev=null;
-    lastLive={c,rows,j:r.jornada};renderLiveCard(c,rows);
+    lastLive={c,rows,j:r.jornada};renderLiveCard(c,rows);if(!$("hx").hidden)renderHx();
     $("lvTitle").textContent=r.jornada.nombre;
     $("lvMeta").textContent=`${r.jornada.cancha} · Código ${r.jornada.id} · ${pct}% del HDC`;
     $("lvTable").innerHTML=`<colgroup><col style="width:30px"><col><col style="width:48px"><col style="width:50px"><col style="width:40px"><col style="width:44px"></colgroup><tr><th>Pos</th><th>Jugador</th><th>Gross</th><th>Neto</th><th>Hoyo</th><th>Tot</th></tr>`+rows.map((x,k)=>{if(x.tp!==prev){pos=k+1;prev=x.tp;}
@@ -1121,6 +1144,9 @@ renderLiveBox();
 const _render=render;
 render=function(){_render();renderLiveBox();};
 syncPlayers();flush();
+(function(){try{if(st.autoHx===false||st.example)return;const n=cur().par.length;const A=act();
+  const started=A.some(p=>scores()[p].some(Boolean));const pending=[...Array(n).keys()].some(i=>!holeDone(i));
+  if(started&&pending)openHx();}catch(e){}})();
 
 </script>
 
