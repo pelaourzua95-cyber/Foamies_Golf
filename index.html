@@ -369,6 +369,7 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
   <div class="save"><button class="btn primary" id="saveRound" type="button">Guardar vuelta</button><span class="src">Crea una imagen de la tarjeta para compartir o guardar en el teléfono.</span></div>
   <details class="card ajustes" id="ajustes"><summary>Ajustes de la vuelta</summary>
    <div class="aj-body">
+    <label class="chk"><input type="checkbox" id="showwin"> Mostrar quién gana el hoyo <small>(Individual)</small></label>
     <label class="chk"><input type="checkbox" id="offlow"> Golpes desde el hándicap más bajo</label>
     <div class="hset-info" id="hinfo"></div>
     <div id="rulesBox"></div>
@@ -384,7 +385,7 @@ tr.best td:first-child{font-size:12px;color:var(--muted)}
     <div id="resetBox"><button class="btn" id="reset" type="button">Borrar puntajes</button></div>
     </div>
     <div class="src" id="src"></div>
-    <div class="src" id="appVer">Versión 5-nov 22:50</div>
+    <div class="src" id="appVer">Versión 5-nov 22:55</div>
    </div>
   </details>
   <div id="hx" class="hx" hidden role="dialog" aria-modal="true" aria-labelledby="hxTitle">
@@ -433,7 +434,7 @@ let st=load();
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.scores)return s;}catch(e){}
   // Ejemplo inicial: Los Leones con los primeros hoyos cargados
   return {course:0,names:["Jugador 1","Jugador 2","Jugador 3","Jugador 4"],hcp:[8,18,12,22],allow:85,offLow:true,scores:{"0":[[4,5,3,6,4,3],[5,4,2,5,5,4],[4,4,4,5,3,3],[3,6,3,4,4,5]]},example:true};}
-st.hcp=st.hcp||[null,null,null,null];if(st.allow==null)st.allow=85;if(st.offLow==null)st.offLow=true;if(!st.mode||!st.modeDefInd){st.mode="ind";st.modeDefInd=true;}if(!st.roster)st.roster=[];if(!st.nInd)st.nInd=4;if(!st.tee)st.tee=["Azules","Azules","Azules","Azules"];
+st.hcp=st.hcp||[null,null,null,null];if(st.allow==null)st.allow=85;if(st.offLow==null)st.offLow=true;if(st.showWin==null)st.showWin=false;if(!st.mode||!st.modeDefInd){st.mode="ind";st.modeDefInd=true;}if(!st.roster)st.roster=[];if(!st.nInd)st.nInd=4;if(!st.tee)st.tee=["Azules","Azules","Azules","Azules"];
 function save(){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}
 const $=id=>document.getElementById(id);
 function cur(){return COURSES[st.course]||COURSES[0];}
@@ -570,7 +571,7 @@ function renderTable(tid){const c=cur();const sc=scores();const n=c.par.length;c
   if(st.mode==="ind"){
     h+=`<tr class="pairhead a"><td colspan="${span}"><span class="ph-l">Jugadores</span></td></tr>`;
     act().forEach(p=>{h+=playerRow(p);});
-    h+=`<tr class="win"><td>Gana el hoyo</td>${row(i=>{const w=indWinner(i);
+    if(st.showWin)h+=`<tr class="win"><td>Gana el hoyo</td>${row(i=>{const w=indWinner(i);
       return `<td class="${w>=0&&w!=null?"wA":"wT"}">${w==null?"":w<0?"=":esc(initials(st.names[w]))}</td>`;},empty,empty)}</tr>`;
   }else if(!isCol()){
     [["a",[0,1],"Pareja A"],["b",[2,3],"Pareja B"]].forEach(([k,ps,lab])=>{
@@ -628,11 +629,11 @@ function renderIndSummary(){const c=cur();const sc=scores();const N=st.names;
   rows.sort((a,b)=>(b.thru>0)-(a.thru>0)||a.tp-b.tp||b.won-a.won);
   let pos=0,prev=null;
   const body=rows.map((r,k)=>{if(r.tp!==prev){pos=k+1;prev=r.tp;}
-    return `<tr><td>${r.thru?pos:"–"}</td><td class="lb-name">${esc(N[r.p])}</td><td class="lb-gross">${r.thru?fmtTo(r.gtp):"–"}</td><td class="${r.thru?(r.tp<0?"c-under":r.tp>0?"c-over":""):""} lb-big">${r.thru?fmtTo(r.tp):"–"}</td><td>${r.thru||"–"}</td><td>${r.thru?r.gross:"–"}</td><td>${r.won}</td></tr>`;}).join("");
+    return `<tr><td>${r.thru?pos:"–"}</td><td class="lb-name">${esc(N[r.p])}</td><td class="lb-gross">${r.thru?fmtTo(r.gtp):"–"}</td><td class="${r.thru?(r.tp<0?"c-under":r.tp>0?"c-over":""):""} lb-big">${r.thru?fmtTo(r.tp):"–"}</td><td>${r.thru||"–"}</td><td>${r.thru?r.gross:"–"}</td>${st.showWin?`<td>${r.won}</td>`:""}</tr>`;}).join("");
   $("summary").className="colsum";
-  $("summary").innerHTML=`<div class="rules"><b>Individual, en neto:</b> cada uno juega por su cuenta. Gana el hoyo el mejor neto; si dos o más empatan, el hoyo no lo gana nadie. La tabla ordena por resultado neto contra el par. Gross es el resultado sin hándicap.</div>
-  <div class="stand"><h3>Tabla de posiciones</h3><div class="scroll"><table class="lb"><colgroup><col style="width:30px"><col><col style="width:46px"><col style="width:48px"><col style="width:40px"><col style="width:42px"><col style="width:40px"></colgroup>
-  <tr><th>Pos</th><th>Jugador</th><th>Gross</th><th>Neto</th><th>Hoyo</th><th>Tot</th><th>Gan.</th></tr>${body}</table></div></div>`;}
+  $("summary").innerHTML=`<div class="rules"><b>Individual, en neto:</b> cada uno juega por su cuenta${st.showWin?". Gana el hoyo el mejor neto; si dos o más empatan, el hoyo no lo gana nadie":""}. La tabla ordena por resultado neto contra el par. Gross es el resultado sin hándicap.</div>
+  <div class="stand"><h3>Tabla de posiciones</h3><div class="scroll"><table class="lb"><colgroup><col style="width:30px"><col><col style="width:46px"><col style="width:48px"><col style="width:40px"><col style="width:42px">${st.showWin?'<col style="width:40px">':""}</colgroup>
+  <tr><th>Pos</th><th>Jugador</th><th>Gross</th><th>Neto</th><th>Hoyo</th><th>Tot</th>${st.showWin?"<th>Gan.</th>":""}</tr>${body}</table></div></div>`;}
 function renderNpl(){const b=$("nplBox");if(b){b.innerHTML="";b.hidden=true;}}
 function nplHtml(){if(st.mode!=="ind")return "";
   return `<div class="npl pl-npl"><span>Cantidad</span><div class="npl-btns" role="radiogroup" aria-label="Cantidad de jugadores">${[1,2,3,4].map(k=>`<button type="button" class="npl-b${st.nInd===k?" on":""}" data-n="${k}" role="radio" aria-checked="${st.nInd===k}">${k}</button>`).join("")}</div></div>`;}
@@ -659,7 +660,7 @@ function render(){const c=cur();const n=c.par.length;
   {const r=$("summary").querySelector(".rules");const rb=$("rulesBox");rb.innerHTML="";
    if(r)rb.appendChild(r);else rb.innerHTML=`<div class="rules"><b>2v2, en neto:</b> en cada hoyo cuenta la mejor bola neta de cada pareja. El resultado suma esas mejores bolas contra el par.</div>`;}
   $("mode").value=st.mode;
-  $("allow").value=String(st.allow);$("offlow").checked=!!st.offLow;
+  $("allow").value=String(st.allow);$("offlow").checked=!!st.offLow;$("showwin").checked=!!st.showWin;
   const PH=playHcp();
   $("hinfo").innerHTML=(c.si?"":"<b>Esta vuelta no tiene hándicap por hoyo publicado, así que el neto es igual al gross.</b> ")+
     "Golpes que recibe cada uno: "+act().map(i=>[st.names[i],i]).map(([n,i])=>`<span class="chip">${esc(n)} <b>${PH[i]>=0?PH[i]:"+"+(-PH[i])}</b></span>`).join(" ")+
@@ -680,6 +681,7 @@ document.addEventListener("input",e=>{const t=e.target;
 document.addEventListener("change",e=>{
   if(e.target.id==="mode"){st.mode=e.target.value;save();render();return;}
   if(e.target.id==="allow"){st.allow=+e.target.value;save();render();return;}
+  if(e.target.id==="showwin"){st.showWin=e.target.checked;save();render();return;}
   if(e.target.id==="offlow"){st.offLow=e.target.checked;save();render();return;}
   if(e.target.matches(".ptee")){st.tee[+e.target.dataset.p]=e.target.value;save();render();return;}
   if(e.target.matches(".pname,.pidx"))remember(+e.target.dataset.p);
@@ -730,7 +732,7 @@ function shotSummary(){const c=cur();const N=st.names;const L=[];
     [0,1,2,3].sort((a,b)=>bal[b]-bal[a]).forEach(p=>L.push({t:N[p],v:bal[p]>0?"+"+bal[p]:bal[p]<0?"−"+(-bal[p]):"0",c:bal[p]>0?IMG.red:bal[p]<0?IMG.blue:IMG.ink,sub:"Balance"}));}
   else{const rows=act().map(p=>{let th=0,net=0,par=0,won=0;c.par.forEach((pp,i)=>{const s=scores()[p][i];if(!s)return;th++;net+=netFull(p,i);par+=pp;});
       c.par.forEach((_,i)=>{if(indWinner(i)===p)won++;});return {p,th,tp:net-par,won};}).sort((a,b)=>(b.th>0)-(a.th>0)||a.tp-b.tp||b.won-a.won);
-    rows.forEach((r,k)=>L.push({t:`${k+1}. ${N[r.p]}`,v:r.th?fmtTo(r.tp):"–",c:r.tp<0?IMG.red:r.tp>0?IMG.blue:IMG.ink,sub:`${r.th} hoyos · ${r.won} ${r.won===1?"ganado":"ganados"}`}));}
+    rows.forEach((r,k)=>L.push({t:`${k+1}. ${N[r.p]}`,v:r.th?fmtTo(r.tp):"–",c:r.tp<0?IMG.red:r.tp>0?IMG.blue:IMG.ink,sub:`${r.th} hoyos${st.showWin?` · ${r.won} ${r.won===1?"ganado":"ganados"}`:""}`}));}
   return L;}
 
 function drawMark(g,x,y,val,par){if(val==null||val==="")return;const d=val-par;const col=d<0?IMG.red:d>0?IMG.blue:IMG.ink;
@@ -746,7 +748,7 @@ async function buildShot(){try{await document.fonts.ready;}catch(e){}
   const W=P*2+LAB+HW*n+SW*(nines.length+1)+NW;
   const teeRows=Object.keys(c.tees).length;
   const order=st.mode==="2v2"?[0,1,"A",2,3,"B"]:act();
-  const extra=(isCol()||st.mode==="ind")?1:0;
+  const extra=(isCol()||(st.mode==="ind"&&st.showWin))?1:0;
   const nRows=teeRows+2+order.length+extra;
   const sm=shotSummary();const cols2=sm.length>2;const nLeft=isCol()?PAIRINGS.length:Math.ceil(sm.length/2);const smRows=cols2?Math.max(nLeft,sm.length-nLeft):sm.length;
   const TOP=186+34;
@@ -800,7 +802,7 @@ async function buildShot(){try{await document.fonts.ready;}catch(e){}
     for(let i=0;i<n;i++){const r=runs[i];if(r.run==null)continue;g.font=`700 24px ${FN}`;g.fillStyle=r.run>0?IMG.band:r.run<0?IMG.gold:IMG.muted;
       g.fillText(r.run===0?"=":"+"+Math.abs(r.run),hx[i],y+RH/2);if(r.mult>1){g.font=`700 14px ${FN}`;g.fillStyle=IMG.accent;g.fillText("x"+r.mult,hx[i]+22,y+12);}}
     line();y+=RH;}
-  if(st.mode==="ind"){g.fillStyle=IMG.row;g.fillRect(P,y,W-2*P,RH);label("GANA EL HOYO",IMG.ink);
+  if(st.mode==="ind"&&st.showWin){g.fillStyle=IMG.row;g.fillRect(P,y,W-2*P,RH);label("GANA EL HOYO",IMG.ink);
     for(let i=0;i<n;i++){const w=indWinner(i);if(w==null)continue;g.font=`700 22px ${FN}`;g.fillStyle=w>=0?IMG.band:IMG.muted;g.fillText(w<0?"=":initials(st.names[w]),hx[i],y+RH/2);}line();y+=RH;}
   y+=40;
   // resumen
@@ -839,7 +841,7 @@ function closeHx(){$("hx").hidden=true;document.body.classList.remove("noscroll"
 function setScore(p,i,v){v=Math.max(1,Math.min(20,v));scores()[p][i]=v;st.example=false;save();renderHx();}
 function hxStatus(i){const c=cur();const N=st.names;
   if(!holeDone(i))return {t:"Faltan golpes por anotar en este hoyo",c:""};
-  if(st.mode==="ind"){const w=indWinner(i);if(w==null)return {t:"Hoyo anotado",c:""};return w<0?{t:"Hoyo empatado: no lo gana nadie",c:"wT"}:{t:`Gana el hoyo ${N[w]}`,c:"wA"};}
+  if(st.mode==="ind"){const w=indWinner(i);if(w==null||!st.showWin)return {t:"Hoyo anotado",c:""};return w<0?{t:"Hoyo empatado: no lo gana nadie",c:"wT"}:{t:`Gana el hoyo ${N[w]}`,c:"wA"};}
   if(isCol()){const r=holePoints(i);const x=colRun()[i];const [A,B]=teamsAt(i);
     const nA=`${short(N[A[0]])} y ${short(N[A[1]])}`,nB=`${short(N[B[0]])} y ${short(N[B[1]])}`;
     const m=x.mult>1?` (vale x${x.mult})`:"";
